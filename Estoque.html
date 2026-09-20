@@ -77,20 +77,20 @@
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-violet-300 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Itens em Estoque</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Saldo em Estoque</span>
         <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-boxes-stacked text-violet-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total-estoque">0</div>
-      <span class="text-[11px] text-slate-400 mt-1" id="stat-variedade">0 produtos diferentes</span>
+      <span class="text-[11px] text-slate-400 mt-1" id="stat-variedade">0 produtos catalogados</span>
     </div>
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-green flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-emerald-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Total Vendido (Saídas)</span>
-        <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-cart-shopping text-emerald-400"></i></div>
+        <span class="text-xs font-semibold uppercase tracking-wider">Total Entregue (Retirados)</span>
+        <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-circle-check text-emerald-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-total-saidas">0</div>
-      <span class="text-[11px] text-slate-400 mt-1">Unidades entregues/vendidas</span>
+      <span class="text-[11px] text-slate-400 mt-1">Unidades finalizadas</span>
     </div>
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
@@ -99,16 +99,16 @@
         <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-reservados">0</div>
-      <span class="text-[11px] text-slate-400 mt-1">Aguardando entrega/pagamento</span>
+      <span class="text-[11px] text-slate-400 mt-1" id="stat-detalhe-reservas">0 Pago | 0 Não Pago</span>
     </div>
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-cyan-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Valor do Estoque</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Valor em Estoque</span>
         <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-vault text-cyan-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
-      <span class="text-[11px] text-slate-400 mt-1">Estimativa de saldo atual</span>
+      <span class="text-[11px] text-slate-400 mt-1">Total acumulado em saldo</span>
     </div>
   </div>
 
@@ -137,12 +137,13 @@
         <thead>
           <tr class="bg-slate-950/80 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
             <th class="py-3.5 px-4">Produto</th>
-            <th class="py-3.5 px-4">Preço Unitário</th>
-            <th class="py-3.5 px-4 text-center">Entradas Totais</th>
-            <th class="py-3.5 px-4 text-center">Vendas (Saídas)</th>
-            <th class="py-3.5 px-4 text-center">Reservados</th>
-            <th class="py-3.5 px-4 text-center">Saldo em Estoque</th>
-            <th class="py-3.5 px-4">Valor em Estoque</th>
+            <th class="py-3.5 px-4">Preço Unit.</th>
+            <th class="py-3.5 px-4 text-center">Entradas</th>
+            <th class="py-3.5 px-4 text-center">Reserva (Não Paga)</th>
+            <th class="py-3.5 px-4 text-center">Reserva (Paga)</th>
+            <th class="py-3.5 px-4 text-center">Retirados</th>
+            <th class="py-3.5 px-4 text-center">Saldo Atual</th>
+            <th class="py-3.5 px-4">Valor Total</th>
             <th class="py-3.5 px-4 text-right">Ações</th>
           </tr>
         </thead>
@@ -153,6 +154,27 @@
     </div>
   </div>
 </main>
+
+<!-- Modal: Detalhes das Reservas por Produto -->
+<div id="details-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] flex flex-col">
+    <div class="flex justify-between items-center border-b border-violet-900/60 pb-3">
+      <div>
+        <h3 class="text-base font-geek font-bold text-violet-300" id="details-product-title">Detalhes de Reservas</h3>
+        <p class="text-xs text-slate-400">Clientes com reservas ativas deste produto</p>
+      </div>
+      <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+
+    <div class="flex-grow overflow-y-auto custom-scrollbar" id="details-list-container">
+      <!-- Lista de clientes com reserva -->
+    </div>
+
+    <div class="flex justify-end pt-2 border-t border-violet-900/60">
+      <button onclick="closeDetailsModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:bg-slate-800">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal: Adicionar Entrada de Estoque / Editar Produto -->
 <div id="stock-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
@@ -172,7 +194,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Qtd. Comprada/Adicionada *</label>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Qtd. Entradas (Total Comprado) *</label>
           <input id="input-stock-qtd" required type="number" min="0" value="10" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
         <div>
@@ -186,20 +208,6 @@
         <button type="submit" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg">Salvar no Estoque</button>
       </div>
     </form>
-  </div>
-</div>
-
-<!-- Modal: Toast / Alertas -->
-<div id="toast-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
-  <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-sm w-full p-5 text-center shadow-2xl space-y-3">
-    <div id="toast-icon" class="w-12 h-12 bg-violet-950 text-violet-400 rounded-full flex items-center justify-center mx-auto text-xl border border-violet-700">
-      <i class="fa-solid fa-circle-info"></i>
-    </div>
-    <h4 id="toast-title" class="font-geek font-bold text-slate-100 text-base">Aviso</h4>
-    <p id="toast-msg" class="text-xs text-slate-300 leading-relaxed"></p>
-    <div class="pt-2 flex justify-center gap-2" id="toast-buttons">
-      <button onclick="closeToast()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold">OK</button>
-    </div>
   </div>
 </div>
 
@@ -308,7 +316,7 @@
     }
   }
 
-  // Renderiza o Balanço Geral do Estoque
+  // Renderiza o Balanço Geral do Estoque com detalhamento de reservas
   window.renderStockTable = function() {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
     const query = (document.getElementById('search-input').value || '').toLowerCase();
@@ -316,31 +324,38 @@
 
     let totalEstoqueGeral = 0;
     let totalSaidasGeral = 0;
-    let totalReservadosGeral = 0;
+    let totalReservaNaoPagaGeral = 0;
+    let totalReservaPagaGeral = 0;
     let valorTotalEstoque = 0;
 
     // Processa o balanço de cada produto
     const stockData = catalogProducts.map(p => {
-      // Procura todas as vendas/leads associadas a esse produto
       const vendasDoProduto = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase());
       
       const retirados = vendasDoProduto.filter(s => s.status === 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
-      const reservados = vendasDoProduto.filter(s => s.status !== 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
       
-      const entradas = Number(p.entradas || p.estoqueInicial || 10); // Valor padrão inicial
+      // Separação de reservas
+      const reservaNaoPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+      const reservaPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Paga').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+      const totalReservados = reservaNaoPaga + reservaPaga;
+
+      const entradas = Number(p.entradas || p.estoqueInicial || 10);
       const saldo = entradas - retirados;
       const valorTotal = Math.max(0, saldo) * Number(p.preco || 0);
 
       totalEstoqueGeral += Math.max(0, saldo);
       totalSaidasGeral += retirados;
-      totalReservadosGeral += reservados;
+      totalReservaNaoPagaGeral += reservaNaoPaga;
+      totalReservaPagaGeral += reservaPaga;
       valorTotalEstoque += valorTotal;
 
       return {
         ...p,
         entradas,
         retirados,
-        reservados,
+        reservaNaoPaga,
+        reservaPaga,
+        totalReservados,
         saldo,
         valorTotal
       };
@@ -360,7 +375,7 @@
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center py-10 text-slate-500">
+          <td colspan="9" class="text-center py-10 text-slate-500">
             <i class="fa-solid fa-boxes-packing text-3xl mb-2 block text-violet-800"></i>
             Nenhum produto em estoque encontrado.
           </td>
@@ -376,8 +391,13 @@
           <td class="py-3 px-4 font-semibold text-slate-100">${esc(p.nome)}</td>
           <td class="py-3 px-4 font-bold text-cyan-300">${brl(p.preco)}</td>
           <td class="py-3 px-4 text-center text-slate-300 font-semibold">${p.entradas}</td>
-          <td class="py-3 px-4 text-center text-emerald-400 font-bold">${p.retirados}</td>
-          <td class="py-3 px-4 text-center text-amber-400 font-bold">${p.reservados}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="font-bold text-amber-400">${p.reservaNaoPaga} un</span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <span class="font-bold text-indigo-300">${p.reservaPaga} un</span>
+          </td>
+          <td class="py-3 px-4 text-center text-emerald-400 font-bold">${p.retirados} un</td>
           <td class="py-3 px-4 text-center">
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${saldoBadge}">
               ${p.saldo} un
@@ -385,23 +405,86 @@
           </td>
           <td class="py-3 px-4 font-bold text-slate-200">${brl(p.valorTotal)}</td>
           <td class="py-3 px-4 text-right">
-            <button onclick="editStockProduct('${p.id}')" title="Editar Entrada/Preço" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-violet-950 rounded-lg transition">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button onclick="deleteStockProduct('${p.id}')" title="Remover" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950 rounded-lg transition">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
+            <div class="flex items-center justify-end gap-1">
+              <button onclick="viewProductReservations('${esc(p.nome)}')" title="Ver Clientes com Reserva" class="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 rounded-lg transition">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button onclick="editStockProduct('${p.id}')" title="Editar Entrada/Preço" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-violet-950 rounded-lg transition">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteStockProduct('${p.id}')" title="Remover" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950 rounded-lg transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `}).join('');
     }
 
-    // Atualiza cards no topo
+    // Atualiza estatísticas do topo
     document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
     document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
     document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
-    document.getElementById('stat-reservados').textContent = totalReservadosGeral;
+    
+    const somaReservas = totalReservaNaoPagaGeral + totalReservaPagaGeral;
+    document.getElementById('stat-reservados').textContent = somaReservas;
+    document.getElementById('stat-detalhe-reservas').textContent = `${totalReservaPagaGeral} Paga | ${totalReservaNaoPagaGeral} Não Paga`;
+    
     document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
+  };
+
+  // Exibe modal detalhada com quem reservou determinado produto
+  window.viewProductReservations = function(nomeProduto) {
+    document.getElementById('details-product-title').textContent = `Reservas: ${nomeProduto}`;
+    
+    const reservas = salesList.filter(s => 
+      (s.produto || '').trim().toLowerCase() === nomeProduto.trim().toLowerCase() && 
+      s.status !== 'Retirado'
+    );
+
+    const container = document.getElementById('details-list-container');
+    
+    if (reservas.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-8 text-slate-500">
+          <i class="fa-solid fa-check-circle text-2xl mb-1 block text-emerald-500"></i>
+          Nenhuma reserva ativa para este produto.
+        </div>`;
+    } else {
+      container.innerHTML = `
+        <div class="space-y-2">
+          ${reservas.map(r => {
+            let statusBadge = 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+            if (r.status === 'Reserva - Paga') statusBadge = 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60';
+            else if (r.status === 'Aguardando Pagamento') statusBadge = 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+
+            return `
+              <div class="bg-slate-950 p-3 rounded-xl border border-violet-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div>
+                  <div class="font-bold text-slate-100 text-sm">${esc(r.cliente)}</div>
+                  <div class="text-slate-400 flex items-center gap-3 mt-1">
+                    <span><i class="fa-solid fa-phone text-violet-400 mr-1"></i>${esc(r.telefone || '-')}</span>
+                    <span><i class="fa-solid fa-user-tag text-cyan-400 mr-1"></i>Vend: ${esc(r.vendedor || 'NATAN')}</span>
+                    <span><i class="fa-solid fa-calendar text-slate-500 mr-1"></i>${r.data || '-'}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 justify-between sm:justify-end border-t sm:border-0 border-slate-800 pt-2 sm:pt-0">
+                  <div class="text-right">
+                    <span class="block text-slate-300 font-bold">${r.quantidade} un -${brl(r.valor)}</span>
+                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge}">${r.status}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>`;
+    }
+
+    document.getElementById('details-modal').classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeDetailsModal = function() {
+    document.getElementById('details-modal').classList.add('opacity-0', 'pointer-events-none');
   };
 
   function esc(str) {
@@ -454,16 +537,6 @@
       localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
       window.renderStockTable();
     }
-  };
-
-  function openToast(title, message) {
-    document.getElementById('toast-title').textContent = title;
-    document.getElementById('toast-msg').textContent = message;
-    document.getElementById('toast-modal').classList.remove('opacity-0', 'pointer-events-none');
-  }
-
-  window.closeToast = function() {
-    document.getElementById('toast-modal').classList.add('opacity-0', 'pointer-events-none');
   };
 
   initFirebase();
