@@ -77,7 +77,7 @@
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-violet-300 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Saldo em Estoque</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Saldo Disponível</span>
         <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-boxes-stacked text-violet-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total-estoque">0</div>
@@ -86,29 +86,29 @@
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-green flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-emerald-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Total Entregue (Retirados)</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Total Baixado</span>
         <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-circle-check text-emerald-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-total-saidas">0</div>
-      <span class="text-[11px] text-slate-400 mt-1">Unidades finalizadas</span>
+      <span class="text-[11px] text-slate-400 mt-1">Retirados + Reservas Pagas</span>
     </div>
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-amber-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Itens Reservados</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Reservas Não Pagas</span>
         <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-reservados">0</div>
-      <span class="text-[11px] text-slate-400 mt-1" id="stat-detalhe-reservas">0 Pago | 0 Não Pago</span>
+      <span class="text-[11px] text-slate-400 mt-1">Pendente de Pagamento</span>
     </div>
 
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-cyan-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Valor em Estoque</span>
+        <span class="text-xs font-semibold uppercase tracking-wider">Valor do Saldo</span>
         <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-vault text-cyan-400"></i></div>
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
-      <span class="text-[11px] text-slate-400 mt-1">Total acumulado em saldo</span>
+      <span class="text-[11px] text-slate-400 mt-1">Estimativa do saldo em loja</span>
     </div>
   </div>
 
@@ -140,8 +140,8 @@
             <th class="py-3.5 px-4">Preço Unit.</th>
             <th class="py-3.5 px-4 text-center">Entradas</th>
             <th class="py-3.5 px-4 text-center">Reserva (Não Paga)</th>
-            <th class="py-3.5 px-4 text-center">Reserva (Paga)</th>
-            <th class="py-3.5 px-4 text-center">Retirados</th>
+            <th class="py-3.5 px-4 text-center">Reserva (Paga) ⬇️</th>
+            <th class="py-3.5 px-4 text-center">Retirados ⬇️</th>
             <th class="py-3.5 px-4 text-center">Saldo Atual</th>
             <th class="py-3.5 px-4">Valor Total</th>
             <th class="py-3.5 px-4 text-right">Ações</th>
@@ -160,8 +160,8 @@
   <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] flex flex-col">
     <div class="flex justify-between items-center border-b border-violet-900/60 pb-3">
       <div>
-        <h3 class="text-base font-geek font-bold text-violet-300" id="details-product-title">Detalhes de Reservas</h3>
-        <p class="text-xs text-slate-400">Clientes com reservas ativas deste produto</p>
+        <h3 class="text-base font-geek font-bold text-violet-300" id="details-product-title">Detalhes de Registros</h3>
+        <p class="text-xs text-slate-400">Histórico de reservas e retiradas deste item</p>
       </div>
       <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
@@ -316,7 +316,7 @@
     }
   }
 
-  // Renderiza o Balanço Geral do Estoque com detalhamento de reservas
+  // Renderiza o Balanço Geral do Estoque com a nova regra de baixa
   window.renderStockTable = function() {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
     const query = (document.getElementById('search-input').value || '').toLowerCase();
@@ -325,7 +325,6 @@
     let totalEstoqueGeral = 0;
     let totalSaidasGeral = 0;
     let totalReservaNaoPagaGeral = 0;
-    let totalReservaPagaGeral = 0;
     let valorTotalEstoque = 0;
 
     // Processa o balanço de cada produto
@@ -333,20 +332,19 @@
       const vendasDoProduto = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase());
       
       const retirados = vendasDoProduto.filter(s => s.status === 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
-      
-      // Separação de reservas
-      const reservaNaoPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
       const reservaPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Paga').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
-      const totalReservados = reservaNaoPaga + reservaPaga;
+      const reservaNaoPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+
+      // REGRA SOLICITADA: Tanto Retirados quanto Reserva - Paga REDUZEM o estoque disponível
+      const baixasTotais = retirados + reservaPaga;
 
       const entradas = Number(p.entradas || p.estoqueInicial || 10);
-      const saldo = entradas - retirados;
+      const saldo = entradas - baixasTotais;
       const valorTotal = Math.max(0, saldo) * Number(p.preco || 0);
 
       totalEstoqueGeral += Math.max(0, saldo);
-      totalSaidasGeral += retirados;
+      totalSaidasGeral += baixasTotais;
       totalReservaNaoPagaGeral += reservaNaoPaga;
-      totalReservaPagaGeral += reservaPaga;
       valorTotalEstoque += valorTotal;
 
       return {
@@ -355,7 +353,7 @@
         retirados,
         reservaNaoPaga,
         reservaPaga,
-        totalReservados,
+        baixasTotais,
         saldo,
         valorTotal
       };
@@ -406,7 +404,7 @@
           <td class="py-3 px-4 font-bold text-slate-200">${brl(p.valorTotal)}</td>
           <td class="py-3 px-4 text-right">
             <div class="flex items-center justify-end gap-1">
-              <button onclick="viewProductReservations('${esc(p.nome)}')" title="Ver Clientes com Reserva" class="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 rounded-lg transition">
+              <button onclick="viewProductReservations('${esc(p.nome)}')" title="Ver Detalhes do Produto" class="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 rounded-lg transition">
                 <i class="fa-solid fa-eye"></i>
               </button>
               <button onclick="editStockProduct('${p.id}')" title="Editar Entrada/Preço" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-violet-950 rounded-lg transition">
@@ -425,37 +423,33 @@
     document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
     document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
     document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
-    
-    const somaReservas = totalReservaNaoPagaGeral + totalReservaPagaGeral;
-    document.getElementById('stat-reservados').textContent = somaReservas;
-    document.getElementById('stat-detalhe-reservas').textContent = `${totalReservaPagaGeral} Paga | ${totalReservaNaoPagaGeral} Não Paga`;
-    
+    document.getElementById('stat-reservados').textContent = totalReservaNaoPagaGeral;
     document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
   };
 
   // Exibe modal detalhada com quem reservou determinado produto
   window.viewProductReservations = function(nomeProduto) {
-    document.getElementById('details-product-title').textContent = `Reservas: ${nomeProduto}`;
+    document.getElementById('details-product-title').textContent = `Histórico: ${nomeProduto}`;
     
-    const reservas = salesList.filter(s => 
-      (s.produto || '').trim().toLowerCase() === nomeProduto.trim().toLowerCase() && 
-      s.status !== 'Retirado'
+    const registros = salesList.filter(s => 
+      (s.produto || '').trim().toLowerCase() === nomeProduto.trim().toLowerCase()
     );
 
     const container = document.getElementById('details-list-container');
     
-    if (reservas.length === 0) {
+    if (registros.length === 0) {
       container.innerHTML = `
         <div class="text-center py-8 text-slate-500">
           <i class="fa-solid fa-check-circle text-2xl mb-1 block text-emerald-500"></i>
-          Nenhuma reserva ativa para este produto.
+          Nenhum registro encontrado para este produto.
         </div>`;
     } else {
       container.innerHTML = `
         <div class="space-y-2">
-          ${reservas.map(r => {
+          ${registros.map(r => {
             let statusBadge = 'bg-amber-950/80 text-amber-300 border-amber-700/60';
             if (r.status === 'Reserva - Paga') statusBadge = 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60';
+            else if (r.status === 'Retirado') statusBadge = 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
             else if (r.status === 'Aguardando Pagamento') statusBadge = 'bg-rose-950/80 text-rose-300 border-rose-700/60';
 
             return `
