@@ -25,6 +25,7 @@
   .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.25); }
   .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
   .glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
+  .glow-amber { box-shadow: 0 0 20px rgba(245, 158, 11, 0.25); }
 </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased bg-[#0b0f19] text-slate-200">
@@ -77,8 +78,8 @@
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
   
-  <!-- Stat Cards / Balanço Geral -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <!-- Stat Cards / Balanço Geral & Faturamento -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
     <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-violet-300 mb-2">
         <span class="text-xs font-semibold uppercase tracking-wider">Saldo Disponível</span>
@@ -97,7 +98,7 @@
       <span class="text-[11px] text-slate-400 mt-1">Retirados + Reservas Pagas</span>
     </div>
 
-    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-amber flex flex-col justify-between backdrop-blur-md">
       <div class="flex items-center justify-between text-amber-400 mb-2">
         <span class="text-xs font-semibold uppercase tracking-wider">Reservas Não Pagas</span>
         <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
@@ -113,6 +114,42 @@
       </div>
       <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
       <span class="text-[11px] text-slate-400 mt-1">Estimativa do saldo em loja</span>
+    </div>
+  </div>
+
+  <!-- Cards de Faturamento em Destaque -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-slate-900/90 p-4 rounded-2xl border border-emerald-800/50 flex items-center justify-between bg-gradient-to-r from-emerald-950/30 to-slate-900">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-1">Faturamento - Recebido</span>
+        <div class="text-xl sm:text-2xl font-geek font-extrabold text-emerald-300" id="stat-fat-recebido">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400">Retirados + Reservas Pagas</span>
+      </div>
+      <div class="p-3 bg-emerald-950/60 rounded-xl border border-emerald-700/40 text-emerald-400 text-xl">
+        <i class="fa-solid fa-sack-dollar"></i>
+      </div>
+    </div>
+
+    <div class="bg-slate-900/90 p-4 rounded-2xl border border-amber-800/50 flex items-center justify-between bg-gradient-to-r from-amber-950/30 to-slate-900">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">Faturamento - Reservas</span>
+        <div class="text-xl sm:text-2xl font-geek font-extrabold text-amber-300" id="stat-fat-reservas">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400">Pendente de Pagamento</span>
+      </div>
+      <div class="p-3 bg-amber-950/60 rounded-xl border border-amber-700/40 text-amber-400 text-xl">
+        <i class="fa-solid fa-hourglass-half"></i>
+      </div>
+    </div>
+
+    <div class="bg-slate-900/90 p-4 rounded-2xl border border-violet-800/60 flex items-center justify-between bg-gradient-to-r from-violet-950/40 to-slate-900 glow-purple">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-violet-300 block mb-1">Faturamento TOTAL</span>
+        <div class="text-xl sm:text-2xl font-geek font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300" id="stat-fat-total">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400">Recebido + Reservas</span>
+      </div>
+      <div class="p-3 bg-violet-950/60 rounded-xl border border-violet-700/40 text-cyan-400 text-xl">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
     </div>
   </div>
 
@@ -354,7 +391,7 @@
     }
   }
 
-  // Renderiza o Balanço Geral do Estoque com a regra de baixa
+  // Renderiza a Tabela e Calcula o Faturamento Geral
   window.renderStockTable = function() {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
     const query = (document.getElementById('search-input').value || '').toLowerCase();
@@ -372,7 +409,6 @@
       const reservaPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Paga').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
       const reservaNaoPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
 
-      // Tantot Retirados como Reserva - Paga REDUZEM o estoque disponível
       const baixasTotais = retirados + reservaPaga;
 
       const entradas = Number(p.entradas || p.estoqueInicial || 10);
@@ -395,6 +431,17 @@
         valorTotal
       };
     });
+
+    // CÁLCULO DOS FATURAMENTOS DA LOJA
+    const fatRecebido = salesList
+      .filter(s => s.status === 'Retirado' || s.status === 'Reserva - Paga')
+      .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+
+    const fatReservas = salesList
+      .filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento')
+      .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+
+    const fatTotal = fatRecebido + fatReservas;
 
     const filtered = stockData.filter(p => {
       const matchQuery = !query || p.nome.toLowerCase().includes(query);
@@ -455,11 +502,17 @@
       `}).join('');
     }
 
+    // Atualização dos indicadores no topo
     document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
     document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
     document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
     document.getElementById('stat-reservados').textContent = totalReservaNaoPagaGeral;
     document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
+
+    // Atualização do Faturamento
+    document.getElementById('stat-fat-recebido').textContent = brl(fatRecebido);
+    document.getElementById('stat-fat-reservas').textContent = brl(fatReservas);
+    document.getElementById('stat-fat-total').textContent = brl(fatTotal);
   };
 
   window.viewProductReservations = function(nomeProduto) {
@@ -519,7 +572,7 @@
     return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   }
 
-  // Configuração do Firebase com conversão automática de JS para JSON
+  // Configuração do Firebase
   window.openConfigModal = function() {
     const modal = document.getElementById('config-modal');
     const customConfig = localStorage.getItem('custom_firebase_config');
