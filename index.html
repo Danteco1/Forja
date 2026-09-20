@@ -748,18 +748,29 @@
     `).join('');
   }
 
-  window.saveFirebaseConfig = function() {
-    const rawJson = document.getElementById('firebase-config-json').value;
-    try {
-      JSON.parse(rawJson);
-      localStorage.setItem('custom_firebase_config', rawJson);
-      window.closeConfigModal();
-      initFirebase();
-    } catch (e) {
-      showToastAlert("Erro", "O JSON informado é inválido.");
+window.saveFirebaseConfig = function() {
+  let rawJson = document.getElementById('firebase-config-json').value.trim();
+  
+  try {
+    // Se o usuário colou const firebaseConfig = { ... }; limpa o texto
+    if (rawJson.includes('{')) {
+      rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
     }
-  };
+    
+    // Converte sintaxe JS para JSON válido automaticamente
+    const formattedJson = rawJson
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":')
+      .replace(/'/g, '"');
 
+    JSON.parse(formattedJson); // Valida a conversão
+    localStorage.setItem('custom_firebase_config', formattedJson);
+    window.closeConfigModal();
+    initFirebase();
+  } catch (e) {
+    showToastAlert("Erro", "O formato informado é inválido. Certifique-se de copiar todo o bloco { ... }.");
+  }
+};
+  
   window.resetFirebaseConfig = function() {
     localStorage.removeItem('custom_firebase_config');
     document.getElementById('firebase-config-json').value = '';
