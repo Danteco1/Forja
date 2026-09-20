@@ -57,12 +57,16 @@
       </div>
     </div>
 
-    <!-- Navegação -->
+    <!-- Navegação e Ações -->
     <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
       <a href="https://danteco1.github.io/Forja/index.html" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-violet-300 rounded-lg text-xs font-semibold transition border border-violet-800/50 flex items-center gap-1.5 shadow-sm">
         <i class="fa-solid fa-chart-line text-cyan-400"></i>
         <span>Ir para Vendas (CRM)</span>
       </a>
+      <button onclick="openConfigModal()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-violet-950/50 text-violet-200 rounded-lg text-xs font-semibold transition border border-violet-700/50 flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-network-wired text-cyan-400"></i>
+        <span>Conectar</span>
+      </button>
       <button onclick="openStockModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-900/40 flex items-center gap-1.5">
         <i class="fa-solid fa-plus"></i>
         <span>Adicionar Entrada / Produto</span>
@@ -211,6 +215,40 @@
   </div>
 </div>
 
+<!-- Modal: Config / Sync Firebase -->
+<div id="config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-800/60 max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div class="flex justify-between items-center border-b border-violet-900/60 pb-3">
+      <h3 class="text-base font-geek font-bold text-violet-300 flex items-center gap-2">
+        <i class="fa-solid fa-network-wired text-cyan-400"></i>
+        <span>Sincronizar Dispositivos</span>
+      </h3>
+      <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+
+    <div class="space-y-4 pt-2">
+      <div class="p-3 bg-amber-950/40 rounded-xl border border-amber-800/40 text-xs text-amber-200 space-y-1">
+        <p class="font-bold"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Configuração do Firebase:</p>
+        <p class="text-[11px]">Cole aqui o código de configuração do Firebase copiado do painel do Google.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Configuração do Firebase (JSON ou JavaScript)</label>
+        <textarea id="firebase-config-json" rows="6" placeholder='{ "apiKey": "...", "projectId": "..." }' class="w-full p-3 font-mono text-xs bg-slate-950 border border-violet-900/60 rounded-lg text-slate-300 focus:outline-none"></textarea>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="resetFirebaseConfig()" class="text-xs font-semibold text-rose-400 hover:underline">Restaurar Padrão</button>
+        <button onclick="saveFirebaseConfig()" class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-bold">Salvar Configuração</button>
+      </div>
+    </div>
+
+    <div class="flex justify-end pt-2 border-t border-violet-900/60">
+      <button onclick="closeConfigModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
   import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
@@ -316,7 +354,7 @@
     }
   }
 
-  // Renderiza o Balanço Geral do Estoque com a nova regra de baixa
+  // Renderiza o Balanço Geral do Estoque com a regra de baixa
   window.renderStockTable = function() {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
     const query = (document.getElementById('search-input').value || '').toLowerCase();
@@ -327,7 +365,6 @@
     let totalReservaNaoPagaGeral = 0;
     let valorTotalEstoque = 0;
 
-    // Processa o balanço de cada produto
     const stockData = catalogProducts.map(p => {
       const vendasDoProduto = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase());
       
@@ -335,7 +372,7 @@
       const reservaPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Paga').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
       const reservaNaoPaga = vendasDoProduto.filter(s => s.status === 'Reserva - Não PAGA' || s.status === 'Aguardando Pagamento').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
 
-      // REGRA SOLICITADA: Tanto Retirados quanto Reserva - Paga REDUZEM o estoque disponível
+      // Tantot Retirados como Reserva - Paga REDUZEM o estoque disponível
       const baixasTotais = retirados + reservaPaga;
 
       const entradas = Number(p.entradas || p.estoqueInicial || 10);
@@ -359,7 +396,6 @@
       };
     });
 
-    // Filtra para exibição na tabela
     const filtered = stockData.filter(p => {
       const matchQuery = !query || p.nome.toLowerCase().includes(query);
       let matchAlerta = true;
@@ -419,7 +455,6 @@
       `}).join('');
     }
 
-    // Atualiza estatísticas do topo
     document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
     document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
     document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
@@ -427,7 +462,6 @@
     document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
   };
 
-  // Exibe modal detalhada com quem reservou determinado produto
   window.viewProductReservations = function(nomeProduto) {
     document.getElementById('details-product-title').textContent = `Histórico: ${nomeProduto}`;
     
@@ -484,6 +518,46 @@
   function esc(str) {
     return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   }
+
+  // Configuração do Firebase com conversão automática de JS para JSON
+  window.openConfigModal = function() {
+    const modal = document.getElementById('config-modal');
+    const customConfig = localStorage.getItem('custom_firebase_config');
+    if (customConfig) document.getElementById('firebase-config-json').value = customConfig;
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeConfigModal = function() {
+    document.getElementById('config-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  window.saveFirebaseConfig = function() {
+    let rawJson = document.getElementById('firebase-config-json').value.trim();
+    
+    try {
+      if (rawJson.includes('{')) {
+        rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
+      }
+      
+      const formattedJson = rawJson
+        .replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":')
+        .replace(/'/g, '"');
+
+      JSON.parse(formattedJson);
+      localStorage.setItem('custom_firebase_config', formattedJson);
+      window.closeConfigModal();
+      initFirebase();
+    } catch (e) {
+      alert("O formato informado é inválido. Verifique se copiou todo o bloco { ... }.");
+    }
+  };
+
+  window.resetFirebaseConfig = function() {
+    localStorage.removeItem('custom_firebase_config');
+    document.getElementById('firebase-config-json').value = '';
+    window.closeConfigModal();
+    initFirebase();
+  };
 
   // Modais de Entrada
   window.openStockModal = function(p = null) {
