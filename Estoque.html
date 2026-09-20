@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Forja do Multiverso - Controle de Estoque</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@600;800;900&display=swap');
+  
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #0b0f19;
+    color: #e2e8f0;
+  }
+  
+  .font-geek { font-family: 'Orbitron', sans-serif; }
+  
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: #1e1b4b; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
+  
+  .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.25); }
+  .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
+  .glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
+</style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-[#0b0f19] text-slate-200">
+
+<!-- Header -->
+<header class="bg-slate-900/90 backdrop-blur-md border-b border-violet-900/50 sticky top-0 z-20 shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
+    
+    <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+      <div class="flex items-center gap-3">
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur opacity-75 group-hover:opacity-100 transition"></div>
+          <img src="image_80d196.png" alt="Forja do Multiverso" class="relative w-11 h-11 object-contain rounded-full bg-slate-950 p-1 border border-violet-500">
+        </div>
+        <div>
+          <h1 class="font-geek font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">
+            FORJA <span class="text-xs text-emerald-400 font-normal">ESTOQUE</span>
+          </h1>
+          <div class="flex items-center gap-2">
+            <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+            <span id="sync-text" class="text-[11px] text-slate-400 font-medium">Iniciando...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room Badge -->
+      <div id="room-badge" class="hidden sm:flex items-center gap-2 bg-slate-950/80 border border-violet-800/60 px-3 py-1 rounded-lg text-xs">
+        <span class="text-slate-400">Sala:</span>
+        <span id="room-id-display" class="font-mono font-bold text-cyan-400">---</span>
+      </div>
+    </div>
+
+    <!-- Navegação -->
+    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+      <a href="index.html" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-violet-300 rounded-lg text-xs font-semibold transition border border-violet-800/50 flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-chart-line text-cyan-400"></i>
+        <span>Ir para Vendas (CRM)</span>
+      </a>
+      <button onclick="openStockModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-900/40 flex items-center gap-1.5">
+        <i class="fa-solid fa-plus"></i>
+        <span>Adicionar Entrada / Produto</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+  
+  <!-- Stat Cards / Balanço Geral -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-violet-300 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Itens em Estoque</span>
+        <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-boxes-stacked text-violet-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total-estoque">0</div>
+      <span class="text-[11px] text-slate-400 mt-1" id="stat-variedade">0 produtos diferentes</span>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-green flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-emerald-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Total Vendido (Saídas)</span>
+        <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-cart-shopping text-emerald-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-total-saidas">0</div>
+      <span class="text-[11px] text-slate-400 mt-1">Unidades entregues/vendidas</span>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-amber-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Itens Reservados</span>
+        <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-reservados">0</div>
+      <span class="text-[11px] text-slate-400 mt-1">Aguardando entrega/pagamento</span>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-cyan-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Valor do Estoque</span>
+        <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-vault text-cyan-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
+      <span class="text-[11px] text-slate-400 mt-1">Estimativa de saldo atual</span>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros e Busca -->
+  <div class="bg-slate-900/80 p-4 rounded-2xl border border-violet-900/40 shadow-xl mb-6 flex flex-col lg:flex-row gap-3 items-center justify-between backdrop-blur-md">
+    <div class="relative w-full lg:max-w-md">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-xs"></i>
+      <input id="search-input" type="text" placeholder="Buscar por nome do produto..." oninput="renderStockTable()"
+        class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm text-slate-200 placeholder-slate-500 transition">
+    </div>
+
+    <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+      <select id="filter-alerta" onchange="renderStockTable()"
+        class="py-2 px-3 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm font-medium text-slate-300">
+        <option value="">Todos os Níveis</option>
+        <option value="critico">⚠️ Estoque Crítico (0 a 2)</option>
+        <option value="ok">✅ Estoque OK (> 2)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabela de Balanço Geral do Estoque -->
+  <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
+    <div class="overflow-x-auto custom-scrollbar">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-950/80 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
+            <th class="py-3.5 px-4">Produto</th>
+            <th class="py-3.5 px-4">Preço Unitário</th>
+            <th class="py-3.5 px-4 text-center">Entradas Totais</th>
+            <th class="py-3.5 px-4 text-center">Vendas (Saídas)</th>
+            <th class="py-3.5 px-4 text-center">Reservados</th>
+            <th class="py-3.5 px-4 text-center">Saldo em Estoque</th>
+            <th class="py-3.5 px-4">Valor em Estoque</th>
+            <th class="py-3.5 px-4 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="stock-tbody" class="divide-y divide-violet-950/50 text-xs sm:text-sm">
+          <!-- Linhas injetadas via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal: Adicionar Entrada de Estoque / Editar Produto -->
+<div id="stock-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/50 max-w-lg w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200" id="stock-modal-box">
+    <div class="p-5 border-b border-violet-900/60 flex justify-between items-center bg-slate-950/60">
+      <h3 id="modal-title" class="text-base font-geek font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300">Nova Entrada de Estoque</h3>
+      <button onclick="closeStockModal()" class="text-slate-400 hover:text-white rounded-lg p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    
+    <form onsubmit="handleStockFormSubmit(event)" class="p-6 space-y-4">
+      <input type="hidden" id="edit-prod-id">
+      
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Nome do Produto *</label>
+        <input id="input-stock-nome" required type="text" placeholder="Ex: Action Figure Homem de Ferro" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Qtd. Comprada/Adicionada *</label>
+          <input id="input-stock-qtd" required type="number" min="0" value="10" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Preço de Venda Unitário (R$) *</label>
+          <input id="input-stock-preco" required type="number" step="0.01" min="0" value="0.00" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-cyan-300 font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-violet-900/60 flex justify-end gap-3">
+        <button type="button" onclick="closeStockModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:bg-slate-800">Cancelar</button>
+        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg">Salvar no Estoque</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Toast / Alertas -->
+<div id="toast-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-sm w-full p-5 text-center shadow-2xl space-y-3">
+    <div id="toast-icon" class="w-12 h-12 bg-violet-950 text-violet-400 rounded-full flex items-center justify-center mx-auto text-xl border border-violet-700">
+      <i class="fa-solid fa-circle-info"></i>
+    </div>
+    <h4 id="toast-title" class="font-geek font-bold text-slate-100 text-base">Aviso</h4>
+    <p id="toast-msg" class="text-xs text-slate-300 leading-relaxed"></p>
+    <div class="pt-2 flex justify-center gap-2" id="toast-buttons">
+      <button onclick="closeToast()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  let salesList = [];
+  let catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
+
+  let db = null;
+  let unsubscribeFirestore = null;
+  let peer = null;
+  let peerConnections = [];
+  let currentRoomCode = localStorage.getItem('crm_room_code') || '';
+
+  const brl = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function setStatus(status, text) {
+    const dot = document.getElementById('sync-dot');
+    const label = document.getElementById('sync-text');
+    if (label) label.textContent = text;
+    if (!dot) return;
+
+    dot.className = "w-2.5 h-2.5 rounded-full inline-block ";
+    if (status === 'online') {
+      dot.classList.add('bg-emerald-400', 'animate-pulse');
+    } else if (status === 'connecting') {
+      dot.classList.add('bg-amber-400', 'animate-pulse');
+    } else {
+      dot.classList.add('bg-rose-500');
+    }
+  }
+
+  function initFirebase() {
+    setStatus('connecting', 'Sincronizando...');
+    const customConfig = localStorage.getItem('custom_firebase_config');
+    
+    if (!customConfig) {
+      setStatus('offline', currentRoomCode ? `Sala PeerJS: ${currentRoomCode}` : 'Modo Local');
+      salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+      window.renderStockTable();
+      initPeerSync();
+      return;
+    }
+
+    try {
+      const config = JSON.parse(customConfig);
+      const app = initializeApp(config);
+      db = getFirestore(app);
+      
+      if (unsubscribeFirestore) unsubscribeFirestore();
+
+      const colRef = collection(db, "vendas");
+      unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+        salesList = snapshot.docs.map(docSnap => docSnap.data());
+        setStatus('online', 'Firebase Conectado');
+        window.renderStockTable();
+      }, () => {
+        setStatus('offline', 'Modo Local / Erro');
+        salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+        window.renderStockTable();
+        initPeerSync();
+      });
+
+    } catch (e) {
+      setStatus('offline', 'Modo Local');
+      salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+      window.renderStockTable();
+      initPeerSync();
+    }
+  }
+
+  function initPeerSync() {
+    if (!currentRoomCode) return;
+
+    document.getElementById('room-badge').classList.remove('hidden');
+    document.getElementById('room-id-display').textContent = currentRoomCode;
+
+    try {
+      if (peer) peer.destroy();
+      const cleanRoom = currentRoomCode.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const myPeerId = `crm-forja-estoque-${cleanRoom}-${Math.random().toString(36).substring(2, 7)}`;
+      peer = new Peer(myPeerId);
+
+      peer.on('open', () => {
+        setStatus('online', `Sala PeerJS: ${cleanRoom}`);
+      });
+
+      peer.on('connection', (conn) => {
+        peerConnections.push(conn);
+        conn.on('data', (data) => {
+          if (data.type === 'SYNC_ALL') {
+            salesList = data.payload.salesList || salesList;
+            if (data.payload.catalogProducts) {
+              catalogProducts = data.payload.catalogProducts;
+              localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+            }
+            window.renderStockTable();
+          }
+        });
+      });
+
+    } catch (err) {
+      console.warn("PeerJS error:", err);
+    }
+  }
+
+  // Renderiza o Balanço Geral do Estoque
+  window.renderStockTable = function() {
+    catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
+    const query = (document.getElementById('search-input').value || '').toLowerCase();
+    const filterAlerta = document.getElementById('filter-alerta').value;
+
+    let totalEstoqueGeral = 0;
+    let totalSaidasGeral = 0;
+    let totalReservadosGeral = 0;
+    let valorTotalEstoque = 0;
+
+    // Processa o balanço de cada produto
+    const stockData = catalogProducts.map(p => {
+      // Procura todas as vendas/leads associadas a esse produto
+      const vendasDoProduto = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase());
+      
+      const retirados = vendasDoProduto.filter(s => s.status === 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+      const reservados = vendasDoProduto.filter(s => s.status !== 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+      
+      const entradas = Number(p.entradas || p.estoqueInicial || 10); // Valor padrão inicial
+      const saldo = entradas - retirados;
+      const valorTotal = Math.max(0, saldo) * Number(p.preco || 0);
+
+      totalEstoqueGeral += Math.max(0, saldo);
+      totalSaidasGeral += retirados;
+      totalReservadosGeral += reservados;
+      valorTotalEstoque += valorTotal;
+
+      return {
+        ...p,
+        entradas,
+        retirados,
+        reservados,
+        saldo,
+        valorTotal
+      };
+    });
+
+    // Filtra para exibição na tabela
+    const filtered = stockData.filter(p => {
+      const matchQuery = !query || p.nome.toLowerCase().includes(query);
+      let matchAlerta = true;
+      if (filterAlerta === 'critico') matchAlerta = p.saldo <= 2;
+      else if (filterAlerta === 'ok') matchAlerta = p.saldo > 2;
+
+      return matchQuery && matchAlerta;
+    });
+
+    const tbody = document.getElementById('stock-tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-10 text-slate-500">
+            <i class="fa-solid fa-boxes-packing text-3xl mb-2 block text-violet-800"></i>
+            Nenhum produto em estoque encontrado.
+          </td>
+        </tr>`;
+    } else {
+      tbody.innerHTML = filtered.map(p => {
+        let saldoBadge = 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
+        if (p.saldo <= 0) saldoBadge = 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+        else if (p.saldo <= 2) saldoBadge = 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+
+        return `
+        <tr class="hover:bg-violet-950/30 transition border-b border-violet-950/40">
+          <td class="py-3 px-4 font-semibold text-slate-100">${esc(p.nome)}</td>
+          <td class="py-3 px-4 font-bold text-cyan-300">${brl(p.preco)}</td>
+          <td class="py-3 px-4 text-center text-slate-300 font-semibold">${p.entradas}</td>
+          <td class="py-3 px-4 text-center text-emerald-400 font-bold">${p.retirados}</td>
+          <td class="py-3 px-4 text-center text-amber-400 font-bold">${p.reservados}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${saldoBadge}">
+              ${p.saldo} un
+            </span>
+          </td>
+          <td class="py-3 px-4 font-bold text-slate-200">${brl(p.valorTotal)}</td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="editStockProduct('${p.id}')" title="Editar Entrada/Preço" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-violet-950 rounded-lg transition">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteStockProduct('${p.id}')" title="Remover" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950 rounded-lg transition">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+      `}).join('');
+    }
+
+    // Atualiza cards no topo
+    document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
+    document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
+    document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
+    document.getElementById('stat-reservados').textContent = totalReservadosGeral;
+    document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
+  };
+
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  }
+
+  // Modais de Entrada
+  window.openStockModal = function(p = null) {
+    document.getElementById('modal-title').textContent = p ? 'Editar Entrada/Preço' : 'Nova Entrada de Estoque';
+    document.getElementById('edit-prod-id').value = p?.id || '';
+    document.getElementById('input-stock-nome').value = p?.nome || '';
+    document.getElementById('input-stock-qtd').value = p?.entradas || 10;
+    document.getElementById('input-stock-preco').value = p?.preco || 0;
+
+    document.getElementById('stock-modal').classList.remove('opacity-0', 'pointer-events-none');
+    document.getElementById('stock-modal-box').classList.remove('scale-95');
+  };
+
+  window.closeStockModal = function() {
+    document.getElementById('stock-modal').classList.add('opacity-0', 'pointer-events-none');
+    document.getElementById('stock-modal-box').classList.add('scale-95');
+  };
+
+  window.handleStockFormSubmit = function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-prod-id').value;
+    const nome = document.getElementById('input-stock-nome').value.trim();
+    const entradas = Number(document.getElementById('input-stock-qtd').value);
+    const preco = Number(document.getElementById('input-stock-preco').value);
+
+    if (id) {
+      catalogProducts = catalogProducts.map(p => p.id === id ? { ...p, nome, entradas, preco } : p);
+    } else {
+      catalogProducts.unshift({ id: crypto.randomUUID(), nome, entradas, preco });
+    }
+
+    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+    window.closeStockModal();
+    window.renderStockTable();
+  };
+
+  window.editStockProduct = function(id) {
+    const prod = catalogProducts.find(p => p.id === id);
+    if (prod) window.openStockModal(prod);
+  };
+
+  window.deleteStockProduct = function(id) {
+    if (confirm("Remover este produto do controle de estoque?")) {
+      catalogProducts = catalogProducts.filter(p => p.id !== id);
+      localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+      window.renderStockTable();
+    }
+  };
+
+  function openToast(title, message) {
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-msg').textContent = message;
+    document.getElementById('toast-modal').classList.remove('opacity-0', 'pointer-events-none');
+  }
+
+  window.closeToast = function() {
+    document.getElementById('toast-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  initFirebase();
+</script>
+</body>
+</html>
