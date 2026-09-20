@@ -61,7 +61,7 @@
 
     <!-- Navegação -->
     <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
-      <a href="https://danteco1.github.io/Forja/Estoque.html" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-emerald-400 rounded-lg text-xs font-semibold transition border border-emerald-800/50 flex items-center gap-1.5 shadow-sm">
+      <a href="estoque.html" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-emerald-400 rounded-lg text-xs font-semibold transition border border-emerald-800/50 flex items-center gap-1.5 shadow-sm">
         <i class="fa-solid fa-boxes-stacked"></i>
         <span>Ir para Estoque</span>
       </a>
@@ -356,11 +356,11 @@
     <div id="tab-content-firebase" class="hidden space-y-4 pt-2">
       <div class="p-3 bg-amber-950/40 rounded-xl border border-amber-800/40 text-xs text-amber-200 space-y-1">
         <p class="font-bold"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Configuração do Firebase:</p>
-        <p class="text-[11px]">Insira o código JSON do seu projeto do Firebase para sincronização contínua na nuvem.</p>
+        <p class="text-[11px]">Cole aqui o código de configuração do Firebase copiado do painel do Google.</p>
       </div>
 
       <div>
-        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">JSON de Configuração</label>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Configuração do Firebase (JSON ou JavaScript)</label>
         <textarea id="firebase-config-json" rows="5" placeholder='{ "apiKey": "...", "projectId": "..." }' class="w-full p-3 font-mono text-xs bg-slate-950 border border-violet-900/60 rounded-lg text-slate-300 focus:outline-none"></textarea>
       </div>
 
@@ -398,16 +398,6 @@
 
   let salesList = [];
   let catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
-  
-  if (catalogProducts.length === 0) {
-    catalogProducts = [
-      { id: '1', nome: 'Action Figure Homem de Ferro', preco: 180.00, entradas: 10 },
-      { id: '2', nome: 'Luminária Multiverso LED', preco: 95.00, entradas: 15 },
-      { id: '3', nome: 'Camiseta Geek Algodão', preco: 65.00, entradas: 20 },
-      { id: '4', nome: 'Caneca Resina Temática', preco: 45.00, entradas: 12 }
-    ];
-    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
-  }
 
   let db = null;
   let unsubscribeFirestore = null;
@@ -447,6 +437,10 @@
     setStatus('connecting', 'Conectando...');
     const customConfig = localStorage.getItem('custom_firebase_config');
     
+    // Atualiza a lista dinamicamente com base no LocalStorage
+    catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
+    populateProductDropdown();
+
     if (!customConfig) {
       setStatus('offline', currentRoomCode ? `Sala PeerJS: ${currentRoomCode}` : 'Modo Local');
       salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
@@ -473,6 +467,7 @@
         showBanner(false);
         setStatus('online', 'Firebase Nuvem Ativo');
         window.renderTable();
+        populateProductDropdown(); // Recalcula estoque dinamicamente nas vendas
       }, (error) => {
         showBanner(true);
         setStatus('offline', 'Firebase: Erro Permissão');
@@ -533,20 +528,26 @@
         localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
       }
       persistLocalFallback(false);
+      populateProductDropdown();
     }
   }
 
-  // Popula o Dropdown exibindo O SALDO EM ESTOQUE
+  // Popula o Dropdown exibindo O SALDO EM ESTOQUE ATUALIZADO
   window.populateProductDropdown = function(selectedName = '') {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
     const select = document.getElementById('select-produto');
+    if (!select) return;
+
     let html = `<option value="">-- Selecione um Produto --</option>`;
     
     catalogProducts.forEach(p => {
-      // Calcula saídas para saber o estoque atual
+      // Abatem ao estoque: Retirados e Reserva - Paga
       const retirados = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase() && s.status === 'Retirado').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
-      const entradas = Number(p.entradas || 10);
-      const estoqueAtual = Math.max(0, entradas - retirados);
+      const reservaPaga = salesList.filter(s => (s.produto || '').trim().toLowerCase() === (p.nome || '').trim().toLowerCase() && s.status === 'Reserva - Paga').reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
+      
+      const baixas = retirados + reservaPaga;
+      const entradas = Number(p.entradas || p.estoqueInicial || 10);
+      const estoqueAtual = Math.max(0, entradas - baixas);
       const infoEstoque = estoqueAtual > 0 ? `[Estoque: ${estoqueAtual} un]` : `[Estoque: 0 un - ESGOTADO]`;
 
       html += `<option value="${esc(p.nome)}" data-preco="${p.preco}">${esc(p.nome)} - ${brl(p.preco)} ${infoEstoque}</option>`;
@@ -690,6 +691,7 @@
     localStorage.setItem('local_vendas_fallback', JSON.stringify(salesList));
     localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
     window.renderTable();
+    populateProductDropdown();
     if (broadcast) broadcastPeerData('SYNC_ALL', { salesList, catalogProducts });
   }
 
@@ -748,29 +750,26 @@
     `).join('');
   }
 
-window.saveFirebaseConfig = function() {
-  let rawJson = document.getElementById('firebase-config-json').value.trim();
-  
-  try {
-    // Se o usuário colou const firebaseConfig = { ... }; limpa o texto
-    if (rawJson.includes('{')) {
-      rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
-    }
-    
-    // Converte sintaxe JS para JSON válido automaticamente
-    const formattedJson = rawJson
-      .replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":')
-      .replace(/'/g, '"');
+  window.saveFirebaseConfig = function() {
+    let rawJson = document.getElementById('firebase-config-json').value.trim();
+    try {
+      if (rawJson.includes('{')) {
+        rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
+      }
+      
+      const formattedJson = rawJson
+        .replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":')
+        .replace(/'/g, '"');
 
-    JSON.parse(formattedJson); // Valida a conversão
-    localStorage.setItem('custom_firebase_config', formattedJson);
-    window.closeConfigModal();
-    initFirebase();
-  } catch (e) {
-    showToastAlert("Erro", "O formato informado é inválido. Certifique-se de copiar todo o bloco { ... }.");
-  }
-};
-  
+      JSON.parse(formattedJson);
+      localStorage.setItem('custom_firebase_config', formattedJson);
+      window.closeConfigModal();
+      initFirebase();
+    } catch (e) {
+      showToastAlert("Erro", "O formato informado é inválido.");
+    }
+  };
+
   window.resetFirebaseConfig = function() {
     localStorage.removeItem('custom_firebase_config');
     document.getElementById('firebase-config-json').value = '';
@@ -975,6 +974,14 @@ window.saveFirebaseConfig = function() {
     link.download = `forja_crm_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
   };
+
+  // Escuta alterações do LocalStorage em tempo real entre abas do navegador
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'forja_catalog_products') {
+      catalogProducts = JSON.parse(e.newValue || '[]');
+      populateProductDropdown();
+    }
+  });
 
   initFirebase();
 </script>
