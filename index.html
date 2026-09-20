@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Forja do Multiverso - CRM Geek</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@600;800;900&display=swap');
+  
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #0b0f19;
+    color: #e2e8f0;
+  }
+  
+  .font-geek { font-family: 'Orbitron', sans-serif; }
+  
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: #1e1b4b; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
+  
+  .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.25); }
+  .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
+</style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-[#0b0f19] text-slate-200">
+
+<!-- Header -->
+<header class="bg-slate-900/90 backdrop-blur-md border-b border-violet-900/50 sticky top-0 z-20 shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
+    
+    <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+      <div class="flex items-center gap-3">
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur opacity-75 group-hover:opacity-100 transition"></div>
+          <img src="https://i.imgur.com/dIB3RNm.png" alt="Forja do Multiverso" class="relative w-11 h-11 object-contain rounded-full bg-slate-950 p-1 border border-violet-500">
+        </div>
+        <div>
+          <h1 class="font-geek font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">
+            FORJA <span class="text-xs text-violet-400 font-normal">CRM</span>
+          </h1>
+          <div class="flex items-center gap-2">
+            <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+            <span id="sync-text" class="text-[11px] text-slate-400 font-medium">Iniciando...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room Badge -->
+      <div id="room-badge" class="hidden sm:flex items-center gap-2 bg-slate-950/80 border border-violet-800/60 px-3 py-1 rounded-lg text-xs">
+        <span class="text-slate-400">Sala:</span>
+        <span id="room-id-display" class="font-mono font-bold text-cyan-400">---</span>
+        <button onclick="copyRoomCode()" title="Copiar Código" class="text-slate-400 hover:text-violet-300 transition">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+      <button onclick="openProductsModal()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-violet-300 rounded-lg text-xs font-semibold transition border border-violet-800/50 flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-boxes-stacked text-violet-400"></i>
+        <span>Produtos</span>
+      </button>
+      <button onclick="openConfigModal()" class="px-3 py-1.5 bg-slate-800/80 hover:bg-violet-950/50 text-violet-200 rounded-lg text-xs font-semibold transition border border-violet-700/50 flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-network-wired text-cyan-400"></i>
+        <span>Conectar</span>
+      </button>
+      <button onclick="openModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-violet-900/40 flex items-center gap-1.5">
+        <i class="fa-solid fa-plus"></i>
+        <span>Nova Venda / Lead</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Alert Banner -->
+<div id="permission-banner" class="hidden bg-amber-500/20 text-amber-200 border-b border-amber-500/30 px-4 py-2.5 text-xs font-medium backdrop-blur-sm">
+  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
+      <span><strong>Aviso de Sincronização:</strong> Configure o Firebase ou selecione o modo de Sala Grátis para conectar entre aparelhos.</span>
+    </div>
+    <div class="flex gap-2 shrink-0">
+      <button onclick="openConfigModal()" class="bg-amber-500 text-slate-950 px-3 py-1 rounded font-bold hover:bg-amber-400 transition">Configurar</button>
+      <button onclick="dismissBanner()" class="text-amber-300 hover:text-white font-bold px-1"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+  
+  <!-- Stat Cards Grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-violet-300 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Total de Registros</span>
+        <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-bolt text-violet-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total">0</div>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-amber-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Aguardando / Reserva</span>
+        <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-pending">0</div>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-emerald-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Retiradas / Entregues</span>
+        <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-circle-check text-emerald-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-done">0</div>
+    </div>
+
+    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
+      <div class="flex items-center justify-between text-cyan-400 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider">Faturamento Total</span>
+        <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-gem text-cyan-400"></i></div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-money">R$ 0,00</div>
+    </div>
+  </div>
+
+  <!-- Filters & Controls Toolbar -->
+  <div class="bg-slate-900/80 p-4 rounded-2xl border border-violet-900/40 shadow-xl mb-6 flex flex-col lg:flex-row gap-3 items-center justify-between backdrop-blur-md">
+    <div class="relative w-full lg:max-w-md">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-xs"></i>
+      <input id="search-input" type="text" placeholder="Buscar por cliente, produto, lead ou fone..." oninput="renderTable()"
+        class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm text-slate-200 placeholder-slate-500 transition">
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+      <!-- Filter Status -->
+      <select id="filter-status" onchange="renderTable()"
+        class="py-2 px-3 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm font-medium text-slate-300">
+        <option value="">Todos os Status</option>
+        <option value="Reserva - Não PAGA">Reserva - Não PAGA</option>
+        <option value="Reserva - Paga">Reserva - Paga</option>
+        <option value="Aguardando Pagamento">Aguardando Pagamento</option>
+        <option value="Retirado">Retirado</option>
+      </select>
+
+      <!-- Filter Vendor -->
+      <select id="filter-vendedor" onchange="renderTable()"
+        class="py-2 px-3 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm font-medium text-slate-300">
+        <option value="">Todos Vendedores</option>
+        <option value="NATAN">NATAN</option>
+        <option value="DAVIS">DAVIS</option>
+        <option value="MATHEUS">MATHEUS</option>
+        <option value="GABRIEL">GABRIEL</option>
+      </select>
+
+      <button onclick="exportCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs sm:text-sm font-semibold transition border border-violet-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-file-csv text-cyan-400"></i>
+        <span>Exportar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
+    <div class="overflow-x-auto custom-scrollbar">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-950/80 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
+            <th class="py-3.5 px-4">Cliente</th>
+            <th class="py-3.5 px-4">Telefone</th>
+            <th class="py-3.5 px-4">Início Lead</th>
+            <th class="py-3.5 px-4">Vendedor</th>
+            <th class="py-3.5 px-4">Produto</th>
+            <th class="py-3.5 px-4">Qtd.</th>
+            <th class="py-3.5 px-4">Valor</th>
+            <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4">Data</th>
+            <th class="py-3.5 px-4 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="sales-tbody" class="divide-y divide-violet-950/50 text-xs sm:text-sm">
+          <!-- Rows dynamically injected -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal: Sales & Lead Form -->
+<div id="sale-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/50 max-w-lg w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200" id="sale-modal-box">
+    <div class="p-5 border-b border-violet-900/60 flex justify-between items-center bg-slate-950/60">
+      <h3 id="modal-title" class="text-base font-geek font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-indigo-300">Nova Venda / Lead</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-white rounded-lg p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    
+    <form onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+      <input type="hidden" id="edit-id">
+      
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Nome do Cliente *</label>
+        <input id="input-cliente" required type="text" placeholder="Ex: Peter Parker" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Telefone / WhatsApp</label>
+          <input id="input-telefone" type="text" placeholder="(12) 99999-9999" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Início do Lead *</label>
+          <select id="input-lead-origem" required class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+            <option value="Instagram">Instagram</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Site / E-commerce">Site / E-commerce</option>
+            <option value="Indicação">Indicação</option>
+            <option value="Evento / Presencial">Evento / Presencial</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Vendedor Responsável *</label>
+        <select id="input-vendedor" required class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none font-bold text-cyan-300">
+          <option value="NATAN">NATAN</option>
+          <option value="DAVIS">DAVIS</option>
+          <option value="MATHEUS">MATHEUS</option>
+          <option value="GABRIEL">GABRIEL</option>
+        </select>
+      </div>
+
+      <!-- Dropdown e seleção do Produto -->
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-xs font-bold uppercase text-violet-300">Selecione o Produto *</label>
+          <button type="button" onclick="openProductsModal()" class="text-[11px] text-cyan-400 hover:underline"><i class="fa-solid fa-plus text-[9px]"></i> Gerenciar Produtos</button>
+        </div>
+        <select id="select-produto" onchange="onProductSelectChange()" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+          <!-- Injetado dinamicamente -->
+        </select>
+      </div>
+
+      <!-- Campo para nome customizado se 'Outro' for selecionado -->
+      <div id="custom-produto-container" class="hidden">
+        <label class="block text-xs font-bold uppercase text-amber-300 mb-1">Nome do Produto Personalizado *</label>
+        <input id="input-produto-custom" type="text" placeholder="Digite o nome do produto..." class="w-full px-3 py-2 bg-slate-950 border border-amber-700/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Quantidade *</label>
+          <input id="input-quantidade" required type="number" min="1" value="1" oninput="recalculateTotal()" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Valor Total (R$) *</label>
+          <input id="input-valor" required type="number" step="0.01" min="0" value="0.00" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-cyan-300 font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Status da Venda</label>
+        <select id="input-status" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+          <option value="Reserva - Não PAGA">Reserva - Não PAGA</option>
+          <option value="Reserva - Paga">Reserva - Paga</option>
+          <option value="Aguardando Pagamento">Aguardando Pagamento</option>
+          <option value="Retirado">Retirado</option>
+        </select>
+      </div>
+
+      <div class="pt-4 border-t border-violet-900/60 flex justify-end gap-3">
+        <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:bg-slate-800">Cancelar</button>
+        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg">Salvar Registro</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Gerenciador de Produtos Catalogados -->
+<div id="products-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-lg w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] flex flex-col">
+    <div class="flex justify-between items-center border-b border-violet-900/60 pb-3">
+      <h3 class="text-base font-geek font-bold text-violet-300 flex items-center gap-2">
+        <i class="fa-solid fa-boxes-stacked text-violet-400"></i>
+        <span>Catálogo de Produtos</span>
+      </h3>
+      <button onclick="closeProductsModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+
+    <!-- Form para adicionar novo produto no catálogo -->
+    <form onsubmit="handleAddCatalogProduct(event)" class="bg-slate-950 p-3 rounded-xl border border-violet-900/60 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <input id="new-prod-nome" required type="text" placeholder="Nome do Produto" class="px-3 py-1.5 bg-slate-900 border border-violet-900/60 rounded-lg text-xs text-slate-200 focus:outline-none sm:col-span-2">
+      <input id="new-prod-preco" required type="number" step="0.01" min="0" placeholder="Preço R$" class="px-3 py-1.5 bg-slate-900 border border-violet-900/60 rounded-lg text-xs text-cyan-300 font-bold focus:outline-none">
+      <button type="submit" class="sm:col-span-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-bold transition">
+        + Cadastrar Produto
+      </button>
+    </form>
+
+    <div class="flex-grow overflow-y-auto custom-scrollbar space-y-2 pr-1" id="products-list-container">
+      <!-- Lista de produtos cadastrados -->
+    </div>
+
+    <div class="flex justify-end pt-2 border-t border-violet-900/60">
+      <button onclick="closeProductsModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400">Concluído</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Config / Sync -->
+<div id="config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-800/60 max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div class="flex justify-between items-center border-b border-violet-900/60 pb-3">
+      <h3 class="text-base font-geek font-bold text-violet-300 flex items-center gap-2">
+        <i class="fa-solid fa-network-wired text-cyan-400"></i>
+        <span>Sincronizar Dispositivos</span>
+      </h3>
+      <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    
+    <div class="flex border-b border-violet-900/60 text-xs font-semibold">
+      <button id="tab-btn-room" onclick="switchTab('room')" class="px-4 py-2 text-violet-400 border-b-2 border-violet-500">
+        <i class="fa-solid fa-users text-xs mr-1"></i> Opção 1: Sala Direta (Sem Conta)
+      </button>
+      <button id="tab-btn-firebase" onclick="switchTab('firebase')" class="px-4 py-2 text-slate-400 hover:text-slate-200">
+        <i class="fa-solid fa-fire text-xs mr-1"></i> Opção 2: Firebase Cloud
+      </button>
+    </div>
+
+    <div id="tab-content-room" class="space-y-4 pt-2">
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Digite um <strong>Código de Sala</strong> idêntico em todos os celulares ou PCs da Forja do Multiverso para sincronizar vendas e leads instantaneamente!
+      </p>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-violet-900/60 space-y-3">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Código da Sala Compartilhada</label>
+          <div class="flex gap-2">
+            <input id="room-code-input" type="text" placeholder="Ex: forja-geek-2026" class="w-full px-3 py-2 bg-slate-900 border border-violet-800/60 rounded-lg text-xs font-mono font-bold text-cyan-300 focus:outline-none">
+            <button onclick="applyRoomCode()" class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-xs font-bold shrink-0">
+              Conectar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-content-firebase" class="hidden space-y-4 pt-2">
+      <div class="p-3 bg-amber-950/40 rounded-xl border border-amber-800/40 text-xs text-amber-200 space-y-1">
+        <p class="font-bold"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Configuração do Firebase:</p>
+        <p class="text-[11px]">Insira o código JSON do seu projeto do Firebase para sincronização contínua na nuvem.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">JSON de Configuração</label>
+        <textarea id="firebase-config-json" rows="5" placeholder='{ "apiKey": "...", "projectId": "..." }' class="w-full p-3 font-mono text-xs bg-slate-950 border border-violet-900/60 rounded-lg text-slate-300 focus:outline-none"></textarea>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="resetFirebaseConfig()" class="text-xs font-semibold text-rose-400 hover:underline">Restaurar Padrão</button>
+        <button onclick="saveFirebaseConfig()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold">Salvar Firebase</button>
+      </div>
+    </div>
+
+    <div class="flex justify-end pt-2 border-t border-violet-900/60">
+      <button onclick="closeConfigModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Toast / Alert -->
+<div id="toast-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-violet-700/60 max-w-sm w-full p-5 text-center shadow-2xl space-y-3">
+    <div id="toast-icon" class="w-12 h-12 bg-violet-950 text-violet-400 rounded-full flex items-center justify-center mx-auto text-xl border border-violet-700">
+      <i class="fa-solid fa-circle-info"></i>
+    </div>
+    <h4 id="toast-title" class="font-geek font-bold text-slate-100 text-base">Aviso</h4>
+    <p id="toast-msg" class="text-xs text-slate-300 leading-relaxed"></p>
+    <div class="pt-2 flex justify-center gap-2" id="toast-buttons">
+      <button onclick="closeToast()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { 
+    getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  let salesList = [];
+  let catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
+  
+  // Produtos de exemplo iniciais caso esteja vazio
+  if (catalogProducts.length === 0) {
+    catalogProducts = [
+      { id: '1', nome: 'Action Figure Homem de Ferro', preco: 180.00 },
+      { id: '2', nome: 'Luminária Multiverso LED', preco: 95.00 },
+      { id: '3', nome: 'Camiseta Geek Algodão', preco: 65.00 },
+      { id: '4', nome: 'Caneca Resina Temática', preco: 45.00 }
+    ];
+    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+  }
+
+  let db = null;
+  let unsubscribeFirestore = null;
+  let peer = null;
+  let peerConnections = [];
+  let currentRoomCode = localStorage.getItem('crm_room_code') || '';
+
+  const brl = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function setStatus(status, text) {
+    const dot = document.getElementById('sync-dot');
+    const label = document.getElementById('sync-text');
+    if (label) label.textContent = text;
+    if (!dot) return;
+
+    dot.className = "w-2.5 h-2.5 rounded-full inline-block ";
+    if (status === 'online') {
+      dot.classList.add('bg-emerald-400', 'animate-pulse');
+    } else if (status === 'connecting') {
+      dot.classList.add('bg-amber-400', 'animate-pulse');
+    } else {
+      dot.classList.add('bg-rose-500');
+    }
+  }
+
+  function showBanner(show) {
+    const banner = document.getElementById('permission-banner');
+    if (banner) {
+      if (show) banner.classList.remove('hidden');
+      else banner.classList.add('hidden');
+    }
+  }
+
+  window.dismissBanner = () => showBanner(false);
+
+  function initFirebase() {
+    setStatus('connecting', 'Conectando...');
+    const customConfig = localStorage.getItem('custom_firebase_config');
+    
+    if (!customConfig) {
+      setStatus('offline', currentRoomCode ? `Sala PeerJS: ${currentRoomCode}` : 'Modo Local');
+      salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+      window.renderTable();
+      initPeerSync();
+      return;
+    }
+
+    try {
+      const config = JSON.parse(customConfig);
+      const app = initializeApp(config);
+      db = getFirestore(app);
+      
+      if (unsubscribeFirestore) unsubscribeFirestore();
+
+      const colRef = collection(db, "vendas");
+      unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+        salesList = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          let formattedDate = data.created_at ? new Date(data.created_at.seconds * 1000).toLocaleDateString('pt-BR') : (data.data || new Date().toLocaleDateString('pt-BR'));
+          return { id: docSnap.id, ...data, data: formattedDate };
+        });
+        
+        showBanner(false);
+        setStatus('online', 'Firebase Nuvem Ativo');
+        window.renderTable();
+      }, (error) => {
+        showBanner(true);
+        setStatus('offline', 'Firebase: Erro Permissão');
+        salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+        window.renderTable();
+        initPeerSync();
+      });
+
+    } catch (e) {
+      setStatus('offline', 'Modo Local');
+      salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
+      window.renderTable();
+      initPeerSync();
+    }
+  }
+
+  function initPeerSync() {
+    if (!currentRoomCode) {
+      document.getElementById('room-badge').classList.add('hidden');
+      return;
+    }
+
+    document.getElementById('room-badge').classList.remove('hidden');
+    document.getElementById('room-id-display').textContent = currentRoomCode;
+
+    try {
+      if (peer) peer.destroy();
+      const cleanRoom = currentRoomCode.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const myPeerId = `crm-forja-${cleanRoom}-${Math.random().toString(36).substring(2, 7)}`;
+      peer = new Peer(myPeerId);
+
+      peer.on('open', () => {
+        setStatus('online', `Conectado na Sala: ${cleanRoom}`);
+      });
+
+      peer.on('connection', (conn) => {
+        peerConnections.push(conn);
+        conn.on('data', (data) => handlePeerData(data));
+      });
+
+    } catch (err) {
+      console.warn("PeerJS error:", err);
+    }
+  }
+
+  function broadcastPeerData(type, payload) {
+    if (!currentRoomCode) return;
+    peerConnections.forEach(conn => {
+      if (conn.open) conn.send({ type, payload });
+    });
+  }
+
+  function handlePeerData(msg) {
+    if (msg.type === 'SYNC_ALL') {
+      salesList = msg.payload.salesList || msg.payload;
+      if (msg.payload.catalogProducts) {
+        catalogProducts = msg.payload.catalogProducts;
+        localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+      }
+      persistLocalFallback(false);
+    }
+  }
+
+  // Popula o Dropdown de produtos no formulário
+  window.populateProductDropdown = function(selectedName = '') {
+    const select = document.getElementById('select-produto');
+    let html = `<option value="">-- Selecione um Produto --</option>`;
+    
+    catalogProducts.forEach(p => {
+      html += `<option value="${esc(p.nome)}" data-preco="${p.preco}">${esc(p.nome)} - ${brl(p.preco)}</option>`;
+    });
+
+    html += `<option value="__custom__">➕ Outro (Digitar manualmente)</option>`;
+    select.innerHTML = html;
+
+    if (selectedName) {
+      const exists = catalogProducts.some(p => p.nome === selectedName);
+      if (exists) {
+        select.value = selectedName;
+        document.getElementById('custom-produto-container').classList.add('hidden');
+      } else {
+        select.value = '__custom__';
+        document.getElementById('custom-produto-container').classList.remove('hidden');
+        document.getElementById('input-produto-custom').value = selectedName;
+      }
+    }
+  };
+
+  // Handler de mudança no Dropdown
+  window.onProductSelectChange = function() {
+    const select = document.getElementById('select-produto');
+    const customContainer = document.getElementById('custom-produto-container');
+    const customInput = document.getElementById('input-produto-custom');
+
+    if (select.value === '__custom__') {
+      customContainer.classList.remove('hidden');
+      customInput.required = true;
+    } else {
+      customContainer.classList.add('hidden');
+      customInput.required = false;
+      customInput.value = '';
+      recalculateTotal();
+    }
+  };
+
+  // Recalcula valor total com base na quantidade e preço do produto
+  window.recalculateTotal = function() {
+    const select = document.getElementById('select-produto');
+    const qtd = Number(document.getElementById('input-quantidade').value) || 1;
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption && selectedOption.dataset.preco) {
+      const precoUnitario = Number(selectedOption.dataset.preco);
+      document.getElementById('input-valor').value = (precoUnitario * qtd).toFixed(2);
+    }
+  };
+
+  window.handleFormSubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-id').value;
+    const cliente = document.getElementById('input-cliente').value.trim();
+    const telefone = document.getElementById('input-telefone').value.trim();
+    const leadOrigem = document.getElementById('input-lead-origem').value;
+    const vendedor = document.getElementById('input-vendedor').value;
+    
+    // Pega produto do dropdown ou do campo customizado
+    const select = document.getElementById('select-produto');
+    let produto = select.value;
+    if (produto === '__custom__') {
+      produto = document.getElementById('input-produto-custom').value.trim();
+    }
+
+    if (!produto) {
+      showToastAlert("Atenção", "Por favor, selecione ou informe um produto.");
+      return;
+    }
+
+    const quantidade = Number(document.getElementById('input-quantidade').value);
+    const valor = Number(document.getElementById('input-valor').value);
+    const status = document.getElementById('input-status').value;
+
+    const payload = {
+      cliente, telefone, leadOrigem, vendedor, produto, quantidade, valor, status,
+      data: new Date().toLocaleDateString('pt-BR'),
+      updated_at: new Date().toISOString()
+    };
+
+    if (db) {
+      try {
+        if (id) {
+          await updateDoc(doc(db, "vendas", id), payload);
+        } else {
+          payload.created_at = serverTimestamp();
+          await addDoc(collection(db, "vendas"), payload);
+        }
+      } catch (err) {
+        fallbackLocalSave(id, payload);
+      }
+    } else {
+      fallbackLocalSave(id, payload);
+    }
+
+    window.closeModal();
+  };
+
+  window.toggleStatus = async function(id) {
+    const sale = salesList.find(s => s.id === id);
+    if (!sale) return;
+    const newStatus = sale.status === 'Retirado' ? 'Reserva - Não PAGA' : 'Retirado';
+
+    if (db) {
+      try {
+        await updateDoc(doc(db, "vendas", id), { status: newStatus });
+      } catch (err) {
+        sale.status = newStatus;
+        persistLocalFallback();
+      }
+    } else {
+      sale.status = newStatus;
+      persistLocalFallback();
+    }
+  };
+
+  window.deleteSale = function(id) {
+    showToastConfirm("Excluir Registro", "Deseja remover esta venda/lead?", async () => {
+      if (db) {
+        try {
+          await deleteDoc(doc(db, "vendas", id));
+        } catch (err) {
+          salesList = salesList.filter(s => s.id !== id);
+          persistLocalFallback();
+        }
+      } else {
+        salesList = salesList.filter(s => s.id !== id);
+        persistLocalFallback();
+      }
+    });
+  };
+
+  function fallbackLocalSave(id, payload) {
+    if (id) {
+      salesList = salesList.map(s => s.id === id ? { ...s, ...payload } : s);
+    } else {
+      const newSale = { id: crypto.randomUUID(), ...payload };
+      salesList.unshift(newSale);
+    }
+    persistLocalFallback();
+  }
+
+  function persistLocalFallback(broadcast = true) {
+    localStorage.setItem('local_vendas_fallback', JSON.stringify(salesList));
+    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+    window.renderTable();
+    if (broadcast) broadcastPeerData('SYNC_ALL', { salesList, catalogProducts });
+  }
+
+  // Gerenciador de Produtos do Catálogo
+  window.openProductsModal = function() {
+    renderProductsList();
+    document.getElementById('products-modal').classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeProductsModal = function() {
+    document.getElementById('products-modal').classList.add('opacity-0', 'pointer-events-none');
+    populateProductDropdown();
+  };
+
+  window.handleAddCatalogProduct = function(e) {
+    e.preventDefault();
+    const nome = document.getElementById('new-prod-nome').value.trim();
+    const preco = Number(document.getElementById('new-prod-preco').value);
+
+    if (!nome) return;
+
+    catalogProducts.unshift({ id: crypto.randomUUID(), nome, preco });
+    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+    
+    document.getElementById('new-prod-nome').value = '';
+    document.getElementById('new-prod-preco').value = '';
+    
+    renderProductsList();
+    persistLocalFallback();
+  };
+
+  window.deleteCatalogProduct = function(id) {
+    catalogProducts = catalogProducts.filter(p => p.id !== id);
+    localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+    renderProductsList();
+    persistLocalFallback();
+  };
+
+  function renderProductsList() {
+    const container = document.getElementById('products-list-container');
+    if (catalogProducts.length === 0) {
+      container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhum produto cadastrado.</p>`;
+      return;
+    }
+
+    container.innerHTML = catalogProducts.map(p => `
+      <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-violet-900/40 text-xs">
+        <div>
+          <span class="font-semibold text-slate-200 block">${esc(p.nome)}</span>
+          <span class="text-cyan-400 font-bold">${brl(p.preco)}</span>
+        </div>
+        <button onclick="deleteCatalogProduct('${p.id}')" class="text-slate-500 hover:text-rose-400 p-1">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  window.saveFirebaseConfig = function() {
+    const rawJson = document.getElementById('firebase-config-json').value;
+    try {
+      JSON.parse(rawJson);
+      localStorage.setItem('custom_firebase_config', rawJson);
+      window.closeConfigModal();
+      initFirebase();
+    } catch (e) {
+      showToastAlert("Erro", "O JSON informado é inválido.");
+    }
+  };
+
+  window.resetFirebaseConfig = function() {
+    localStorage.removeItem('custom_firebase_config');
+    document.getElementById('firebase-config-json').value = '';
+    window.closeConfigModal();
+    initFirebase();
+  };
+
+  window.applyRoomCode = function() {
+    const code = document.getElementById('room-code-input').value.trim();
+    if (!code) return;
+    currentRoomCode = code;
+    localStorage.setItem('crm_room_code', code);
+    window.closeConfigModal();
+    initPeerSync();
+  };
+
+  window.switchTab = function(tab) {
+    const btnRoom = document.getElementById('tab-btn-room');
+    const btnFb = document.getElementById('tab-btn-firebase');
+    const contentRoom = document.getElementById('tab-content-room');
+    const contentFb = document.getElementById('tab-content-firebase');
+
+    if (tab === 'room') {
+      btnRoom.className = "px-4 py-2 text-violet-400 border-b-2 border-violet-500";
+      btnFb.className = "px-4 py-2 text-slate-400 hover:text-slate-200";
+      contentRoom.classList.remove('hidden');
+      contentFb.classList.add('hidden');
+    } else {
+      btnFb.className = "px-4 py-2 text-violet-400 border-b-2 border-violet-500";
+      btnRoom.className = "px-4 py-2 text-slate-400 hover:text-slate-200";
+      contentFb.classList.remove('hidden');
+      contentRoom.classList.add('hidden');
+    }
+  };
+
+  window.copyRoomCode = function() {
+    if (!currentRoomCode) return;
+    navigator.clipboard.writeText(currentRoomCode);
+    showToastAlert("Copiado!", `Código "${currentRoomCode}" copiado.`);
+  };
+
+  window.renderTable = function() {
+    const query = (document.getElementById('search-input').value || '').toLowerCase();
+    const filterStatus = document.getElementById('filter-status').value;
+    const filterVendedor = document.getElementById('filter-vendedor').value;
+
+    const filtered = salesList.filter(v => {
+      const matchStatus = !filterStatus || v.status === filterStatus;
+      const matchVendedor = !filterVendedor || v.vendedor === filterVendedor;
+      const matchQuery = !query || [v.cliente, v.telefone, v.produto, v.vendedor, v.leadOrigem].join(' ').toLowerCase().includes(query);
+      return matchStatus && matchVendedor && matchQuery;
+    });
+
+    const tbody = document.getElementById('sales-tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center py-10 text-slate-500">
+            <i class="fa-solid fa-ghost text-3xl mb-2 block text-violet-800"></i>
+            Nenhum registro encontrado na Forja.
+          </td>
+        </tr>`;
+    } else {
+      tbody.innerHTML = filtered.map(v => {
+        let badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+        if (v.status === 'Retirado') badgeColor = 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
+        else if (v.status === 'Reserva - Paga') badgeColor = 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60';
+        else if (v.status === 'Aguardando Pagamento') badgeColor = 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+
+        return `
+        <tr class="hover:bg-violet-950/30 transition border-b border-violet-950/40">
+          <td class="py-3 px-4 font-semibold text-slate-100">${esc(v.cliente)}</td>
+          <td class="py-3 px-4 text-slate-400">${esc(v.telefone || '-')}</td>
+          <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] text-cyan-300">${esc(v.leadOrigem || 'WhatsApp')}</span></td>
+          <td class="py-3 px-4"><span class="font-bold text-violet-300">${esc(v.vendedor || 'NATAN')}</span></td>
+          <td class="py-3 px-4 text-slate-300">${esc(v.produto)}</td>
+          <td class="py-3 px-4 text-slate-300">${v.quantidade}</td>
+          <td class="py-3 px-4 font-bold text-cyan-300">${brl(v.valor)}</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeColor}">
+              ${v.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-400">${v.data || '-'}</td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end gap-1">
+              <button onclick="editSale('${v.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-violet-950 rounded-lg transition">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="toggleStatus('${v.id}')" title="Alternar Status" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-950 rounded-lg transition">
+                <i class="fa-solid ${v.status === 'Retirado' ? 'fa-rotate-left' : 'fa-check'}"></i>
+              </button>
+              <button onclick="deleteSale('${v.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950 rounded-lg transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `}).join('');
+    }
+
+    // Update metrics
+    document.getElementById('stat-total').textContent = salesList.length;
+    document.getElementById('stat-pending').textContent = salesList.filter(s => s.status !== 'Retirado').length;
+    document.getElementById('stat-done').textContent = salesList.filter(s => s.status === 'Retirado').length;
+    document.getElementById('stat-money').textContent = brl(salesList.reduce((acc, cur) => acc + Number(cur.valor || 0), 0));
+  };
+
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  }
+
+  window.openModal = function(v = null) {
+    const modal = document.getElementById('sale-modal');
+    const modalBox = document.getElementById('sale-modal-box');
+    document.getElementById('modal-title').textContent = v ? 'Editar Venda / Lead' : 'Nova Venda / Lead';
+    
+    document.getElementById('edit-id').value = v?.id || '';
+    document.getElementById('input-cliente').value = v?.cliente || '';
+    document.getElementById('input-telefone').value = v?.telefone || '';
+    document.getElementById('input-lead-origem').value = v?.leadOrigem || 'WhatsApp';
+    document.getElementById('input-vendedor').value = v?.vendedor || 'NATAN';
+    document.getElementById('input-quantidade').value = v?.quantidade || 1;
+    document.getElementById('input-valor').value = v?.valor || 0;
+    document.getElementById('input-status').value = v?.status || 'Reserva - Não PAGA';
+
+    populateProductDropdown(v?.produto || '');
+
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modalBox.classList.remove('scale-95');
+    modalBox.classList.add('scale-100');
+  };
+
+  window.closeModal = function() {
+    const modal = document.getElementById('sale-modal');
+    const modalBox = document.getElementById('sale-modal-box');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modalBox.classList.remove('scale-100');
+    modalBox.classList.add('scale-95');
+  };
+
+  window.editSale = function(id) {
+    const sale = salesList.find(s => s.id === id);
+    if (sale) openModal(sale);
+  };
+
+  window.openConfigModal = function() {
+    const modal = document.getElementById('config-modal');
+    const customConfig = localStorage.getItem('custom_firebase_config');
+    if (customConfig) document.getElementById('firebase-config-json').value = customConfig;
+    if (currentRoomCode) document.getElementById('room-code-input').value = currentRoomCode;
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeConfigModal = function() {
+    document.getElementById('config-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  function showToastAlert(title, message) {
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-msg').textContent = message;
+    document.getElementById('toast-buttons').innerHTML = `
+      <button onclick="closeToast()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold">OK</button>
+    `;
+    openToast();
+  }
+
+  function showToastConfirm(title, message, onConfirm) {
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-msg').textContent = message;
+    document.getElementById('toast-buttons').innerHTML = `
+      <button onclick="closeToast()" class="px-3 py-1.5 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400">Cancelar</button>
+      <button id="toast-confirm-btn" class="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold">Confirmar</button>
+    `;
+    openToast();
+    document.getElementById('toast-confirm-btn').onclick = () => {
+      closeToast();
+      onConfirm();
+    };
+  }
+
+  function openToast() {
+    document.getElementById('toast-modal').classList.remove('opacity-0', 'pointer-events-none');
+  }
+
+  window.closeToast = function() {
+    document.getElementById('toast-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  window.exportCSV = function() {
+    if (salesList.length === 0) {
+      showToastAlert("Exportação CSV", "Sem registros para exportar.");
+      return;
+    }
+    const headers = ['Cliente', 'Telefone', 'Inicio Lead', 'Vendedor', 'Produto', 'Quantidade', 'Valor', 'Status', 'Data'];
+    const rows = salesList.map(v => [v.cliente, v.telefone, v.leadOrigem, v.vendedor, v.produto, v.quantidade, v.valor, v.status, v.data]);
+    const csvContent = [headers, ...rows].map(e => e.map(x => `"${String(x).replaceAll('"', '""')}"`).join(';')).join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `forja_crm_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+  };
+
+  initFirebase();
+</script>
+</body>
+</html>
