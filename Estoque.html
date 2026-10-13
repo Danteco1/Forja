@@ -1,9 +1,10 @@
+
 <!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Forja do Multiverso - Controle de Estoque</title>
+<title>Forja do Multiverso - Controle de Estoque & Insumos</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -26,6 +27,7 @@
   .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.25); }
   .glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
   .glow-amber { box-shadow: 0 0 20px rgba(245, 158, 11, 0.25); }
+  .glow-rose { box-shadow: 0 0 20px rgba(244, 63, 94, 0.25); }
 </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased bg-[#0b0f19] text-slate-200">
@@ -42,7 +44,7 @@
         </div>
         <div>
           <h1 class="font-geek font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">
-            FORJA <span class="text-xs text-emerald-400 font-normal">ESTOQUE</span>
+            FORJA <span class="text-xs text-emerald-400 font-normal">ESTOQUE & INSUMOS</span>
           </h1>
           <div class="flex items-center gap-2">
             <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
@@ -68,131 +70,256 @@
         <i class="fa-solid fa-network-wired text-cyan-400"></i>
         <span>Conectar</span>
       </button>
-      <button onclick="openStockModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-900/40 flex items-center gap-1.5">
+      
+      <button id="btn-action-add" onclick="handleHeaderAction()" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-900/40 flex items-center gap-1.5">
         <i class="fa-solid fa-plus"></i>
-        <span>Adicionar Entrada / Produto</span>
+        <span id="btn-action-text">Adicionar Entrada / Produto</span>
       </button>
     </div>
+  </div>
+
+  <!-- Abas de Navegação -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-2 pt-2 border-t border-violet-900/30">
+    <button id="tab-btn-produtos" onclick="switchTab('produtos')" class="px-4 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold text-xs flex items-center gap-2 transition">
+      <i class="fa-solid fa-boxes-stacked"></i>
+      <span>Estoque de Produtos</span>
+    </button>
+    <button id="tab-btn-insumos" onclick="switchTab('insumos')" class="px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-bold text-xs flex items-center gap-2 transition">
+      <i class="fa-solid fa-flask text-amber-400"></i>
+      <span>Insumos & Lucratividade</span>
+    </button>
   </div>
 </header>
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
   
-  <!-- Stat Cards / Balanço Geral & Faturamento -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
-      <div class="flex items-center justify-between text-violet-300 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Saldo Disponível</span>
-        <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-boxes-stacked text-violet-400"></i></div>
+  <!-- ==================== SEÇÃO 1: ESTOQUE DE PRODUTOS ==================== -->
+  <div id="section-produtos" class="space-y-6">
+    <!-- Stat Cards / Balanço Geral & Faturamento -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-purple flex flex-col justify-between backdrop-blur-md">
+        <div class="flex items-center justify-between text-violet-300 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Saldo Disponível</span>
+          <div class="p-2 bg-violet-950/60 rounded-lg border border-violet-800/40"><i class="fa-solid fa-boxes-stacked text-violet-400"></i></div>
+        </div>
+        <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total-estoque">0</div>
+        <span class="text-[11px] text-slate-400 mt-1" id="stat-variedade">0 produtos catalogados</span>
       </div>
-      <div class="text-2xl sm:text-3xl font-geek font-bold text-white" id="stat-total-estoque">0</div>
-      <span class="text-[11px] text-slate-400 mt-1" id="stat-variedade">0 produtos catalogados</span>
+
+      <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-green flex flex-col justify-between backdrop-blur-md">
+        <div class="flex items-center justify-between text-emerald-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Total Baixado</span>
+          <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-circle-check text-emerald-400"></i></div>
+        </div>
+        <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-total-saidas">0</div>
+        <span class="text-[11px] text-slate-400 mt-1">Retirados + Reservas Pagas</span>
+      </div>
+
+      <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-amber flex flex-col justify-between backdrop-blur-md">
+        <div class="flex items-center justify-between text-amber-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Reservas Não Pagas</span>
+          <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
+        </div>
+        <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-reservados">0</div>
+        <span class="text-[11px] text-slate-400 mt-1">Pendente de Pagamento</span>
+      </div>
+
+      <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
+        <div class="flex items-center justify-between text-cyan-400 mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Valor do Saldo</span>
+          <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-vault text-cyan-400"></i></div>
+        </div>
+        <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
+        <span class="text-[11px] text-slate-400 mt-1">Estimativa do saldo em loja</span>
+      </div>
     </div>
 
-    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-green flex flex-col justify-between backdrop-blur-md">
-      <div class="flex items-center justify-between text-emerald-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Total Baixado</span>
-        <div class="p-2 bg-emerald-950/40 rounded-lg border border-emerald-800/30"><i class="fa-solid fa-circle-check text-emerald-400"></i></div>
+    <!-- Cards de Faturamento em Destaque -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-900/90 p-4 rounded-2xl border border-emerald-800/50 flex items-center justify-between bg-gradient-to-r from-emerald-950/30 to-slate-900">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-1">Faturamento - Recebido</span>
+          <div class="text-xl sm:text-2xl font-geek font-extrabold text-emerald-300" id="stat-fat-recebido">R$ 0,00</div>
+          <span class="text-[10px] text-slate-400">Retirados + Reservas Pagas</span>
+        </div>
+        <div class="p-3 bg-emerald-950/60 rounded-xl border border-emerald-700/40 text-emerald-400 text-xl">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
       </div>
-      <div class="text-2xl sm:text-3xl font-geek font-bold text-emerald-400" id="stat-total-saidas">0</div>
-      <span class="text-[11px] text-slate-400 mt-1">Retirados + Reservas Pagas</span>
+
+      <div class="bg-slate-900/90 p-4 rounded-2xl border border-amber-800/50 flex items-center justify-between bg-gradient-to-r from-amber-950/30 to-slate-900">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">Faturamento - Reservas</span>
+          <div class="text-xl sm:text-2xl font-geek font-extrabold text-amber-300" id="stat-fat-reservas">R$ 0,00</div>
+          <span class="text-[10px] text-slate-400">Pendente de Pagamento</span>
+        </div>
+        <div class="p-3 bg-amber-950/60 rounded-xl border border-amber-700/40 text-amber-400 text-xl">
+          <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 p-4 rounded-2xl border border-violet-800/60 flex items-center justify-between bg-gradient-to-r from-violet-950/40 to-slate-900 glow-purple">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-violet-300 block mb-1">Faturamento TOTAL</span>
+          <div class="text-xl sm:text-2xl font-geek font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300" id="stat-fat-total">R$ 0,00</div>
+          <span class="text-[10px] text-slate-400">Recebido + Reservas</span>
+        </div>
+        <div class="p-3 bg-violet-950/60 rounded-xl border border-violet-700/40 text-cyan-400 text-xl">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+      </div>
     </div>
 
-    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-amber flex flex-col justify-between backdrop-blur-md">
-      <div class="flex items-center justify-between text-amber-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Reservas Não Pagas</span>
-        <div class="p-2 bg-amber-950/40 rounded-lg border border-amber-800/30"><i class="fa-solid fa-clock text-amber-400"></i></div>
+    <!-- Barra de Filtros e Busca -->
+    <div class="bg-slate-900/80 p-4 rounded-2xl border border-violet-900/40 shadow-xl flex flex-col lg:flex-row gap-3 items-center justify-between backdrop-blur-md">
+      <div class="relative w-full lg:max-w-md">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-xs"></i>
+        <input id="search-input" type="text" placeholder="Buscar por nome do produto..." oninput="renderStockTable()"
+          class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm text-slate-200 placeholder-slate-500 transition">
       </div>
-      <div class="text-2xl sm:text-3xl font-geek font-bold text-amber-400" id="stat-reservados">0</div>
-      <span class="text-[11px] text-slate-400 mt-1">Pendente de Pagamento</span>
+
+      <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+        <select id="filter-alerta" onchange="renderStockTable()"
+          class="py-2 px-3 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm font-medium text-slate-300">
+          <option value="">Todos os Níveis</option>
+          <option value="critico">⚠️ Estoque Crítico (0 a 2)</option>
+          <option value="ok">✅ Estoque OK (> 2)</option>
+        </select>
+      </div>
     </div>
 
-    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-violet-950/80 glow-blue flex flex-col justify-between backdrop-blur-md">
-      <div class="flex items-center justify-between text-cyan-400 mb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider">Valor do Saldo</span>
-        <div class="p-2 bg-cyan-950/40 rounded-lg border border-cyan-800/30"><i class="fa-solid fa-vault text-cyan-400"></i></div>
+    <!-- Tabela de Balanço Geral do Estoque -->
+    <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/80 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
+              <th class="py-3.5 px-4">Produto</th>
+              <th class="py-3.5 px-4">Preço Unit.</th>
+              <th class="py-3.5 px-4 text-center">Entradas</th>
+              <th class="py-3.5 px-4 text-center">Reserva (Não Paga)</th>
+              <th class="py-3.5 px-4 text-center">Reserva (Paga) ⬇️</th>
+              <th class="py-3.5 px-4 text-center">Retirados ⬇️</th>
+              <th class="py-3.5 px-4 text-center">Saldo Atual</th>
+              <th class="py-3.5 px-4">Valor Total</th>
+              <th class="py-3.5 px-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="stock-tbody" class="divide-y divide-violet-950/50 text-xs sm:text-sm">
+            <!-- Linhas injetadas via JavaScript -->
+          </tbody>
+        </table>
       </div>
-      <div class="text-2xl sm:text-3xl font-geek font-bold text-cyan-400" id="stat-valor-estoque">R$ 0,00</div>
-      <span class="text-[11px] text-slate-400 mt-1">Estimativa do saldo em loja</span>
     </div>
   </div>
 
-  <!-- Cards de Faturamento em Destaque -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-slate-900/90 p-4 rounded-2xl border border-emerald-800/50 flex items-center justify-between bg-gradient-to-r from-emerald-950/30 to-slate-900">
-      <div>
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-1">Faturamento - Recebido</span>
-        <div class="text-xl sm:text-2xl font-geek font-extrabold text-emerald-300" id="stat-fat-recebido">R$ 0,00</div>
-        <span class="text-[10px] text-slate-400">Retirados + Reservas Pagas</span>
+  <!-- ==================== SEÇÃO 2: INSUMOS & LUCRATIVIDADE ==================== -->
+  <div id="section-insumos" class="hidden space-y-6">
+    
+    <!-- Dashboard de Lucratividade & Balanço Financeiro -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-slate-900/80 p-4 rounded-2xl border border-emerald-800/50 glow-green flex flex-col justify-between">
+        <div class="flex items-center justify-between text-emerald-400 mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider">Receita (Vendas)</span>
+          <i class="fa-solid fa-arrow-up-right-dots text-lg"></i>
+        </div>
+        <div class="text-2xl font-geek font-bold text-emerald-300" id="stat-insumo-receita">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400 mt-1">Faturamento Confirmado</span>
       </div>
-      <div class="p-3 bg-emerald-950/60 rounded-xl border border-emerald-700/40 text-emerald-400 text-xl">
-        <i class="fa-solid fa-sack-dollar"></i>
+
+      <div class="bg-slate-900/80 p-4 rounded-2xl border border-rose-800/50 glow-rose flex flex-col justify-between">
+        <div class="flex items-center justify-between text-rose-400 mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider">Gastos c/ Insumos</span>
+          <i class="fa-solid fa-receipt text-lg"></i>
+        </div>
+        <div class="text-2xl font-geek font-bold text-rose-300" id="stat-insumo-gastos-totais">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400 mt-1" id="stat-insumo-consumidos-sub">Consumidos: R$ 0,00</span>
+      </div>
+
+      <div class="bg-slate-900/80 p-4 rounded-2xl border border-violet-800/60 glow-purple flex flex-col justify-between">
+        <div class="flex items-center justify-between text-violet-300 mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider">Lucro Real Líquido</span>
+          <i class="fa-solid fa-calculator text-lg text-cyan-400"></i>
+        </div>
+        <div class="text-2xl font-geek font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-cyan-300 to-indigo-300" id="stat-lucro-real">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400 mt-1" id="stat-lucro-margem">Margem: 0%</span>
+      </div>
+
+      <div class="bg-slate-900/80 p-4 rounded-2xl border border-amber-800/50 glow-amber flex flex-col justify-between">
+        <div class="flex items-center justify-between text-amber-400 mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider">Valor em Materiais</span>
+          <i class="fa-solid fa-boxes-packing text-lg"></i>
+        </div>
+        <div class="text-2xl font-geek font-bold text-amber-300" id="stat-insumo-estoque-valor">R$ 0,00</div>
+        <span class="text-[10px] text-slate-400 mt-1" id="stat-insumo-tipos">0 tipos de insumos</span>
       </div>
     </div>
 
-    <div class="bg-slate-900/90 p-4 rounded-2xl border border-amber-800/50 flex items-center justify-between bg-gradient-to-r from-amber-950/30 to-slate-900">
-      <div>
-        <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">Faturamento - Reservas</span>
-        <div class="text-xl sm:text-2xl font-geek font-extrabold text-amber-300" id="stat-fat-reservas">R$ 0,00</div>
-        <span class="text-[10px] text-slate-400">Pendente de Pagamento</span>
+    <!-- Tabela de Cadastro e Estoque de Insumos -->
+    <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
+      <div class="p-4 bg-slate-950/70 border-b border-violet-900/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h3 class="font-geek font-bold text-sm text-violet-300 flex items-center gap-2">
+          <i class="fa-solid fa-boxes-stacked text-amber-400"></i>
+          <span>Insumos Cadastrados & Nível de Estoque</span>
+        </h3>
+        <button onclick="openInsumoModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-md">
+          <i class="fa-solid fa-plus"></i>
+          <span>Cadastrar Novo Insumo</span>
+        </button>
       </div>
-      <div class="p-3 bg-amber-950/60 rounded-xl border border-amber-700/40 text-amber-400 text-xl">
-        <i class="fa-solid fa-hourglass-half"></i>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/90 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
+              <th class="py-3.5 px-4">Insumo / Matéria-Prima</th>
+              <th class="py-3.5 px-4">Preço por Un.</th>
+              <th class="py-3.5 px-4 text-center">Comprado</th>
+              <th class="py-3.5 px-4 text-center">Consumido (Baixas)</th>
+              <th class="py-3.5 px-4 text-center">Saldo em Estoque</th>
+              <th class="py-3.5 px-4">Gasto Total Compras</th>
+              <th class="py-3.5 px-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="insumos-tbody" class="divide-y divide-violet-950/50 text-xs sm:text-sm">
+            <!-- Injetado via JS -->
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="bg-slate-900/90 p-4 rounded-2xl border border-violet-800/60 flex items-center justify-between bg-gradient-to-r from-violet-950/40 to-slate-900 glow-purple">
-      <div>
-        <span class="text-xs font-bold uppercase tracking-wider text-violet-300 block mb-1">Faturamento TOTAL</span>
-        <div class="text-xl sm:text-2xl font-geek font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-300" id="stat-fat-total">R$ 0,00</div>
-        <span class="text-[10px] text-slate-400">Recebido + Reservas</span>
+    <!-- Tabela de Histórico de Baixas e Consumo -->
+    <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
+      <div class="p-4 bg-slate-950/70 border-b border-violet-900/50 flex justify-between items-center">
+        <h3 class="font-geek font-bold text-sm text-violet-300 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i>
+          <span>Histórico de Baixas & Andamento de Consumo</span>
+        </h3>
+        <button onclick="openBaixaInsumoModal()" class="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-md border border-rose-500/40">
+          <i class="fa-solid fa-minus-circle"></i>
+          <span>Dar Baixa / Registrar Consumo</span>
+        </button>
       </div>
-      <div class="p-3 bg-violet-950/60 rounded-xl border border-violet-700/40 text-cyan-400 text-xl">
-        <i class="fa-solid fa-chart-pie"></i>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/90 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
+              <th class="py-3 px-4">Data</th>
+              <th class="py-3 px-4">Insumo</th>
+              <th class="py-3 px-4 text-center">Qtd. Baixada</th>
+              <th class="py-3 px-4">Custo do Consumo</th>
+              <th class="py-3 px-4">Motivo / Destino</th>
+              <th class="py-3 px-4 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="insumos-baixas-tbody" class="divide-y divide-violet-950/50 text-xs">
+            <!-- Injetado via JS -->
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
 
-  <!-- Barra de Filtros e Busca -->
-  <div class="bg-slate-900/80 p-4 rounded-2xl border border-violet-900/40 shadow-xl mb-6 flex flex-col lg:flex-row gap-3 items-center justify-between backdrop-blur-md">
-    <div class="relative w-full lg:max-w-md">
-      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-xs"></i>
-      <input id="search-input" type="text" placeholder="Buscar por nome do produto..." oninput="renderStockTable()"
-        class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm text-slate-200 placeholder-slate-500 transition">
-    </div>
-
-    <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
-      <select id="filter-alerta" onchange="renderStockTable()"
-        class="py-2 px-3 bg-slate-950 border border-violet-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs sm:text-sm font-medium text-slate-300">
-        <option value="">Todos os Níveis</option>
-        <option value="critico">⚠️ Estoque Crítico (0 a 2)</option>
-        <option value="ok">✅ Estoque OK (> 2)</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Tabela de Balanço Geral do Estoque -->
-  <div class="bg-slate-900/80 rounded-2xl border border-violet-900/40 shadow-2xl overflow-hidden backdrop-blur-md">
-    <div class="overflow-x-auto custom-scrollbar">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr class="bg-slate-950/80 border-b border-violet-900/50 text-[11px] font-bold text-violet-300 uppercase tracking-wider">
-            <th class="py-3.5 px-4">Produto</th>
-            <th class="py-3.5 px-4">Preço Unit.</th>
-            <th class="py-3.5 px-4 text-center">Entradas</th>
-            <th class="py-3.5 px-4 text-center">Reserva (Não Paga)</th>
-            <th class="py-3.5 px-4 text-center">Reserva (Paga) ⬇️</th>
-            <th class="py-3.5 px-4 text-center">Retirados ⬇️</th>
-            <th class="py-3.5 px-4 text-center">Saldo Atual</th>
-            <th class="py-3.5 px-4">Valor Total</th>
-            <th class="py-3.5 px-4 text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="stock-tbody" class="divide-y divide-violet-950/50 text-xs sm:text-sm">
-          <!-- Linhas injetadas via JavaScript -->
-        </tbody>
-      </table>
-    </div>
   </div>
 </main>
 
@@ -252,6 +379,103 @@
   </div>
 </div>
 
+<!-- Modal: Cadastrar/Editar Insumo -->
+<div id="insumo-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-amber-600/50 max-w-lg w-full shadow-2xl overflow-hidden">
+    <div class="p-5 border-b border-violet-900/60 flex justify-between items-center bg-slate-950/60">
+      <h3 id="insumo-modal-title" class="text-base font-geek font-bold text-amber-300">Cadastrar Insumo / Matéria-Prima</h3>
+      <button onclick="closeInsumoModal()" class="text-slate-400 hover:text-white rounded-lg p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    
+    <form onsubmit="handleInsumoFormSubmit(event)" class="p-6 space-y-4">
+      <input type="hidden" id="edit-insumo-id">
+      
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Nome do Insumo *</label>
+        <input id="input-insumo-nome" required type="text" placeholder="Ex: Resina 3D, Filamento PLA, Embalagem P" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Unidade de Medida *</label>
+          <select id="input-insumo-unidade" required class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <option value="kg">Quilogramas (kg)</option>
+            <option value="g">Gramas (g)</option>
+            <option value="L">Litros (L)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="un">Unidades (un)</option>
+            <option value="m">Metros (m)</option>
+            <option value="cx">Caixas (cx)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Custo por Unidade (R$) *</label>
+          <input id="input-insumo-preco" required type="number" step="0.001" min="0" value="0.00" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-amber-300 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Qtd. Total Comprada *</label>
+          <input id="input-insumo-qtd" required type="number" step="0.01" min="0" value="10" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Alerta Mínimo *</label>
+          <input id="input-insumo-min" required type="number" step="0.01" min="0" value="2" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-violet-900/60 flex justify-end gap-3">
+        <button type="button" onclick="closeInsumoModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:bg-slate-800">Cancelar</button>
+        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-bold shadow-lg">Salvar Insumo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Dar Baixa em Insumo -->
+<div id="baixa-insumo-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+  <div class="bg-slate-900 rounded-2xl border border-rose-600/50 max-w-lg w-full shadow-2xl overflow-hidden">
+    <div class="p-5 border-b border-violet-900/60 flex justify-between items-center bg-slate-950/60">
+      <h3 class="text-base font-geek font-bold text-rose-300 flex items-center gap-2">
+        <i class="fa-solid fa-minus-circle"></i>
+        <span>Dar Baixa / Consumo de Insumo</span>
+      </h3>
+      <button onclick="closeBaixaInsumoModal()" class="text-slate-400 hover:text-white rounded-lg p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    
+    <form onsubmit="handleBaixaInsumoSubmit(event)" class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Selecione o Insumo *</label>
+        <select id="select-baixa-insumo-id" required onchange="updateBaixaUnidadeLabel()" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+          <!-- Injetado via JS -->
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Qtd. a Baixar <span id="baixa-unidade-label" class="text-amber-400"></span> *</label>
+          <input id="input-baixa-qtd" required type="number" step="0.01" min="0.01" value="1" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-rose-300 font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Data *</label>
+          <input id="input-baixa-data" required type="date" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase text-violet-300 mb-1">Motivo / Destino do Consumo</label>
+        <input id="input-baixa-motivo" type="text" placeholder="Ex: Impressão da Order #1042, Produção, Teste/Perda" class="w-full px-3 py-2 bg-slate-950 border border-violet-900/60 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+      </div>
+
+      <div class="pt-4 border-t border-violet-900/60 flex justify-end gap-3">
+        <button type="button" onclick="closeBaixaInsumoModal()" class="px-4 py-2 border border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:bg-slate-800">Cancelar</button>
+        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold shadow-lg">Confirmar Baixa</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Config / Sync Firebase -->
 <div id="config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
   <div class="bg-slate-900 rounded-2xl border border-violet-800/60 max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -288,13 +512,19 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
   let salesList = [];
   let catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
+  let insumosList = JSON.parse(localStorage.getItem('forja_insumos_list') || '[]');
+  let insumosBaixas = JSON.parse(localStorage.getItem('forja_insumos_baixas') || '[]');
+
+  let currentTab = 'produtos';
 
   let db = null;
-  let unsubscribeFirestore = null;
+  let unsubscribeFirestoreSales = null;
+  let unsubscribeFirestoreInsumos = null;
+  let unsubscribeFirestoreBaixas = null;
   let peer = null;
   let peerConnections = [];
   let currentRoomCode = localStorage.getItem('crm_room_code') || '';
@@ -324,7 +554,7 @@
     if (!customConfig) {
       setStatus('offline', currentRoomCode ? `Sala PeerJS: ${currentRoomCode}` : 'Modo Local');
       salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
-      window.renderStockTable();
+      window.renderAll();
       initPeerSync();
       return;
     }
@@ -334,24 +564,42 @@
       const app = initializeApp(config);
       db = getFirestore(app);
       
-      if (unsubscribeFirestore) unsubscribeFirestore();
+      if (unsubscribeFirestoreSales) unsubscribeFirestoreSales();
+      if (unsubscribeFirestoreInsumos) unsubscribeFirestoreInsumos();
+      if (unsubscribeFirestoreBaixas) unsubscribeFirestoreBaixas();
 
-      const colRef = collection(db, "vendas");
-      unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+      // Listener Vendas
+      const colSales = collection(db, "vendas");
+      unsubscribeFirestoreSales = onSnapshot(colSales, (snapshot) => {
         salesList = snapshot.docs.map(docSnap => docSnap.data());
         setStatus('online', 'Firebase Conectado');
-        window.renderStockTable();
-      }, () => {
-        setStatus('offline', 'Modo Local / Erro');
-        salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
-        window.renderStockTable();
-        initPeerSync();
+        window.renderAll();
+      }, () => setStatus('offline', 'Modo Local / Erro'));
+
+      // Listener Insumos
+      const colInsumos = collection(db, "insumos");
+      unsubscribeFirestoreInsumos = onSnapshot(colInsumos, (snapshot) => {
+        if (!snapshot.empty) {
+          insumosList = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+          localStorage.setItem('forja_insumos_list', JSON.stringify(insumosList));
+          window.renderAll();
+        }
+      });
+
+      // Listener Baixas Insumos
+      const colBaixas = collection(db, "insumos_baixas");
+      unsubscribeFirestoreBaixas = onSnapshot(colBaixas, (snapshot) => {
+        if (!snapshot.empty) {
+          insumosBaixas = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+          localStorage.setItem('forja_insumos_baixas', JSON.stringify(insumosBaixas));
+          window.renderAll();
+        }
       });
 
     } catch (e) {
       setStatus('offline', 'Modo Local');
       salesList = JSON.parse(localStorage.getItem('local_vendas_fallback') || '[]');
-      window.renderStockTable();
+      window.renderAll();
       initPeerSync();
     }
   }
@@ -381,7 +629,15 @@
               catalogProducts = data.payload.catalogProducts;
               localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
             }
-            window.renderStockTable();
+            if (data.payload.insumosList) {
+              insumosList = data.payload.insumosList;
+              localStorage.setItem('forja_insumos_list', JSON.stringify(insumosList));
+            }
+            if (data.payload.insumosBaixas) {
+              insumosBaixas = data.payload.insumosBaixas;
+              localStorage.setItem('forja_insumos_baixas', JSON.stringify(insumosBaixas));
+            }
+            window.renderAll();
           }
         });
       });
@@ -391,11 +647,58 @@
     }
   }
 
-  // Renderiza a Tabela e Calcula o Faturamento Geral
+  window.broadcastSync = function() {
+    if (peerConnections.length > 0) {
+      const payload = { salesList, catalogProducts, insumosList, insumosBaixas };
+      peerConnections.forEach(c => c.open && c.send({ type: 'SYNC_ALL', payload }));
+    }
+  };
+
+  // NAVEGAÇÃO ENTRE ABAS
+  window.switchTab = function(tab) {
+    currentTab = tab;
+    const secProdutos = document.getElementById('section-produtos');
+    const secInsumos = document.getElementById('section-insumos');
+    const btnTabProd = document.getElementById('tab-btn-produtos');
+    const btnTabIns = document.getElementById('tab-btn-insumos');
+    const btnActionText = document.getElementById('btn-action-text');
+
+    if (tab === 'produtos') {
+      secProdutos.classList.remove('hidden');
+      secInsumos.classList.add('hidden');
+      
+      btnTabProd.className = "px-4 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold text-xs flex items-center gap-2 transition";
+      btnTabIns.className = "px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-bold text-xs flex items-center gap-2 transition";
+      btnActionText.textContent = "Adicionar Entrada / Produto";
+    } else {
+      secProdutos.classList.add('hidden');
+      secInsumos.classList.remove('hidden');
+
+      btnTabIns.className = "px-4 py-2 border-b-2 border-amber-400 text-amber-300 font-bold text-xs flex items-center gap-2 transition";
+      btnTabProd.className = "px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-bold text-xs flex items-center gap-2 transition";
+      btnActionText.textContent = "Cadastrar Insumo";
+    }
+    window.renderAll();
+  };
+
+  window.handleHeaderAction = function() {
+    if (currentTab === 'produtos') {
+      window.openStockModal();
+    } else {
+      window.openInsumoModal();
+    }
+  };
+
+  window.renderAll = function() {
+    window.renderStockTable();
+    window.renderInsumosSection();
+  };
+
+  // RENDERIZAR TABELA DE ESTOQUE DE PRODUTOS
   window.renderStockTable = function() {
     catalogProducts = JSON.parse(localStorage.getItem('forja_catalog_products') || '[]');
-    const query = (document.getElementById('search-input').value || '').toLowerCase();
-    const filterAlerta = document.getElementById('filter-alerta').value;
+    const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const filterAlerta = document.getElementById('filter-alerta')?.value || '';
 
     let totalEstoqueGeral = 0;
     let totalSaidasGeral = 0;
@@ -432,7 +735,7 @@
       };
     });
 
-    // CÁLCULO DOS FATURAMENTOS DA LOJA
+    // FATURAMENTO
     const fatRecebido = salesList
       .filter(s => s.status === 'Retirado' || s.status === 'Reserva - Paga')
       .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
@@ -453,6 +756,8 @@
     });
 
     const tbody = document.getElementById('stock-tbody');
+    if (!tbody) return;
+
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -502,19 +807,291 @@
       `}).join('');
     }
 
-    // Atualização dos indicadores no topo
+    // Indicadores do topo
     document.getElementById('stat-total-estoque').textContent = totalEstoqueGeral;
     document.getElementById('stat-variedade').textContent = `${stockData.length} produtos catalogados`;
     document.getElementById('stat-total-saidas').textContent = totalSaidasGeral;
     document.getElementById('stat-reservados').textContent = totalReservaNaoPagaGeral;
     document.getElementById('stat-valor-estoque').textContent = brl(valorTotalEstoque);
 
-    // Atualização do Faturamento
+    // Faturamento
     document.getElementById('stat-fat-recebido').textContent = brl(fatRecebido);
     document.getElementById('stat-fat-reservas').textContent = brl(fatReservas);
     document.getElementById('stat-fat-total').textContent = brl(fatTotal);
   };
 
+  // RENDERIZAR SEÇÃO DE INSUMOS & BALANÇO DE LUCRATIVIDADE
+  window.renderInsumosSection = function() {
+    insumosList = JSON.parse(localStorage.getItem('forja_insumos_list') || '[]');
+    insumosBaixas = JSON.parse(localStorage.getItem('forja_insumos_baixas') || '[]');
+
+    let gastoTotalCompras = 0;
+    let gastoTotalConsumido = 0;
+    let valorEstoqueInsumos = 0;
+
+    const insumosComSaldos = insumosList.map(ins => {
+      const baixasDoInsumo = insumosBaixas.filter(b => b.insumoId === ins.id);
+      const totalConsumido = baixasDoInsumo.reduce((acc, curr) => acc + Number(curr.qtd || 0), 0);
+      const saldo = Number(ins.qtdTotal || 0) - totalConsumido;
+      
+      const gastoCompra = Number(ins.qtdTotal || 0) * Number(ins.precoUnidade || 0);
+      const gastoConsumo = totalConsumido * Number(ins.precoUnidade || 0);
+      const valorEmEstoque = Math.max(0, saldo) * Number(ins.precoUnidade || 0);
+
+      gastoTotalCompras += gastoCompra;
+      gastoTotalConsumido += gastoConsumo;
+      valorEstoqueInsumos += valorEmEstoque;
+
+      return {
+        ...ins,
+        totalConsumido,
+        saldo,
+        gastoCompra,
+        gastoConsumo,
+        valorEmEstoque
+      };
+    });
+
+    // RECEITA DE VENDAS (CRM)
+    const receitaVendas = salesList
+      .filter(s => s.status === 'Retirado' || s.status === 'Reserva - Paga')
+      .reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
+
+    // BALANÇO E LUCRATIVIDADE REAL
+    const lucroReal = receitaVendas - gastoTotalCompras;
+    const margemLucro = receitaVendas > 0 ? ((lucroReal / receitaVendas) * 100).toFixed(1) : 0;
+
+    // Atualização dos Cards
+    document.getElementById('stat-insumo-receita').textContent = brl(receitaVendas);
+    document.getElementById('stat-insumo-gastos-totais').textContent = brl(gastoTotalCompras);
+    document.getElementById('stat-insumo-consumidos-sub').textContent = `Consumidos: ${brl(gastoTotalConsumido)}`;
+    document.getElementById('stat-lucro-real').textContent = brl(lucroReal);
+    document.getElementById('stat-lucro-margem').textContent = `Margem Real: ${margemLucro}%`;
+    document.getElementById('stat-insumo-estoque-valor').textContent = brl(valorEstoqueInsumos);
+    document.getElementById('stat-insumo-tipos').textContent = `${insumosList.length} tipos cadastrados`;
+
+    // Tabela Insumos
+    const tbodyInsumos = document.getElementById('insumos-tbody');
+    if (tbodyInsumos) {
+      if (insumosComSaldos.length === 0) {
+        tbodyInsumos.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-8 text-slate-500">
+              <i class="fa-solid fa-flask text-2xl mb-1 block text-amber-500/50"></i>
+              Nenhum insumo cadastrado ainda.
+            </td>
+          </tr>`;
+      } else {
+        tbodyInsumos.innerHTML = insumosComSaldos.map(ins => {
+          let badgeColor = 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
+          if (ins.saldo <= 0) badgeColor = 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+          else if (ins.saldo <= Number(ins.alertaMin || 0)) badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+
+          return `
+          <tr class="hover:bg-violet-950/30 transition border-b border-violet-950/40">
+            <td class="py-3 px-4 font-semibold text-slate-100">${esc(ins.nome)}</td>
+            <td class="py-3 px-4 font-bold text-amber-300">${brl(ins.precoUnidade)} / ${ins.unidade}</td>
+            <td class="py-3 px-4 text-center text-slate-300 font-semibold">${ins.qtdTotal} ${ins.unidade}</td>
+            <td class="py-3 px-4 text-center text-rose-400 font-semibold">${ins.totalConsumido.toFixed(2)} ${ins.unidade}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeColor}">
+                ${ins.saldo.toFixed(2)} ${ins.unidade}
+              </span>
+            </td>
+            <td class="py-3 px-4 font-bold text-slate-200">${brl(ins.gastoCompra)}</td>
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button onclick="editInsumo('${ins.id}')" title="Editar Insumo" class="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-violet-950 rounded-lg transition">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="deleteInsumo('${ins.id}')" title="Remover Insumo" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950 rounded-lg transition">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `}).join('');
+      }
+    }
+
+    // Tabela Baixas
+    const tbodyBaixas = document.getElementById('insumos-baixas-tbody');
+    if (tbodyBaixas) {
+      if (insumosBaixas.length === 0) {
+        tbodyBaixas.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-6 text-slate-500">
+              Nenhum registro de baixa de insumo efetuado.
+            </td>
+          </tr>`;
+      } else {
+        const baixasOrdenadas = [...insumosBaixas].sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+        tbodyBaixas.innerHTML = baixasOrdenadas.map(b => {
+          const insumoRel = insumosList.find(i => i.id === b.insumoId);
+          const nomeInsumo = insumoRel ? insumoRel.nome : (b.insumoNome || 'Insumo Removido');
+          const unidade = insumoRel ? insumoRel.unidade : '';
+          const custoCalculado = insumoRel ? (Number(b.qtd) * Number(insumoRel.precoUnidade || 0)) : 0;
+
+          return `
+          <tr class="hover:bg-slate-950/50 border-b border-violet-950/40">
+            <td class="py-2.5 px-4 text-slate-400">${b.data || '-'}</td>
+            <td class="py-2.5 px-4 font-bold text-slate-200">${esc(nomeInsumo)}</td>
+            <td class="py-2.5 px-4 text-center font-bold text-rose-400">-${b.qtd} ${unidade}</td>
+            <td class="py-2.5 px-4 font-bold text-slate-300">${brl(custoCalculado)}</td>
+            <td class="py-2.5 px-4 text-slate-400 italic">${esc(b.motivo || 'Uso em Produção')}</td>
+            <td class="py-2.5 px-4 text-right">
+              <button onclick="deleteBaixaInsumo('${b.id}')" title="Cancelar Baixa" class="text-xs text-rose-400 hover:underline">
+                <i class="fa-solid fa-xmark"></i> Excluir
+              </button>
+            </td>
+          </tr>
+        `}).join('');
+      }
+    }
+  };
+
+  // MODAL INSUMOS
+  window.openInsumoModal = function(ins = null) {
+    document.getElementById('insumo-modal-title').textContent = ins ? 'Editar Insumo' : 'Cadastrar Insumo / Matéria-Prima';
+    document.getElementById('edit-insumo-id').value = ins?.id || '';
+    document.getElementById('input-insumo-nome').value = ins?.nome || '';
+    document.getElementById('input-insumo-unidade').value = ins?.unidade || 'kg';
+    document.getElementById('input-insumo-preco').value = ins?.precoUnidade || 0;
+    document.getElementById('input-insumo-qtd').value = ins?.qtdTotal || 10;
+    document.getElementById('input-insumo-min').value = ins?.alertaMin || 2;
+
+    document.getElementById('insumo-modal').classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeInsumoModal = function() {
+    document.getElementById('insumo-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  window.handleInsumoFormSubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-insumo-id').value || crypto.randomUUID();
+    const nome = document.getElementById('input-insumo-nome').value.trim();
+    const unidade = document.getElementById('input-insumo-unidade').value;
+    const precoUnidade = Number(document.getElementById('input-insumo-preco').value);
+    const qtdTotal = Number(document.getElementById('input-insumo-qtd').value);
+    const alertaMin = Number(document.getElementById('input-insumo-min').value);
+
+    const insumoData = { id, nome, unidade, precoUnidade, qtdTotal, alertaMin };
+
+    const idx = insumosList.findIndex(i => i.id === id);
+    if (idx >= 0) insumosList[idx] = insumoData;
+    else insumosList.unshift(insumoData);
+
+    localStorage.setItem('forja_insumos_list', JSON.stringify(insumosList));
+
+    if (db) {
+      try {
+        await setDoc(doc(db, "insumos", id), insumoData);
+      } catch (err) { console.error("Erro Firebase Insumos:", err); }
+    }
+
+    window.broadcastSync();
+    window.closeInsumoModal();
+    window.renderInsumosSection();
+  };
+
+  window.editInsumo = function(id) {
+    const ins = insumosList.find(i => i.id === id);
+    if (ins) window.openInsumoModal(ins);
+  };
+
+  window.deleteInsumo = async function(id) {
+    if (confirm("Deseja realmente excluir este insumo?")) {
+      insumosList = insumosList.filter(i => i.id !== id);
+      localStorage.setItem('forja_insumos_list', JSON.stringify(insumosList));
+
+      if (db) {
+        try { await deleteDoc(doc(db, "insumos", id)); } catch (e) {}
+      }
+
+      window.broadcastSync();
+      window.renderInsumosSection();
+    }
+  };
+
+  // MODAL DAR BAIXA EM INSUMO
+  window.openBaixaInsumoModal = function() {
+    insumosList = JSON.parse(localStorage.getItem('forja_insumos_list') || '[]');
+    const select = document.getElementById('select-baixa-insumo-id');
+    
+    if (insumosList.length === 0) {
+      alert("Cadastre pelo menos um insumo antes de efetuar baixas!");
+      return;
+    }
+
+    select.innerHTML = insumosList.map(i => `<option value="${i.id}">${esc(i.nome)} (${i.unidade})</option>`).join('');
+    
+    document.getElementById('input-baixa-data').value = new Date().toISOString().split('T')[0];
+    document.getElementById('input-baixa-qtd').value = 1;
+    document.getElementById('input-baixa-motivo').value = '';
+
+    window.updateBaixaUnidadeLabel();
+    document.getElementById('baixa-insumo-modal').classList.remove('opacity-0', 'pointer-events-none');
+  };
+
+  window.closeBaixaInsumoModal = function() {
+    document.getElementById('baixa-insumo-modal').classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  window.updateBaixaUnidadeLabel = function() {
+    const selectId = document.getElementById('select-baixa-insumo-id').value;
+    const ins = insumosList.find(i => i.id === selectId);
+    const label = document.getElementById('baixa-unidade-label');
+    if (label && ins) label.textContent = `(${ins.unidade})`;
+  };
+
+  window.handleBaixaInsumoSubmit = async function(e) {
+    e.preventDefault();
+    const insumoId = document.getElementById('select-baixa-insumo-id').value;
+    const insumo = insumosList.find(i => i.id === insumoId);
+    const qtd = Number(document.getElementById('input-baixa-qtd').value);
+    const data = document.getElementById('input-baixa-data').value;
+    const motivo = document.getElementById('input-baixa-motivo').value.trim() || 'Uso Geral / Produção';
+
+    const baixaId = crypto.randomUUID();
+    const baixaData = {
+      id: baixaId,
+      insumoId,
+      insumoNome: insumo ? insumo.nome : '',
+      qtd,
+      data,
+      motivo
+    };
+
+    insumosBaixas.unshift(baixaData);
+    localStorage.setItem('forja_insumos_baixas', JSON.stringify(insumosBaixas));
+
+    if (db) {
+      try {
+        await setDoc(doc(db, "insumos_baixas", baixaId), baixaData);
+      } catch (err) { console.error("Erro Firebase Baixa:", err); }
+    }
+
+    window.broadcastSync();
+    window.closeBaixaInsumoModal();
+    window.renderInsumosSection();
+  };
+
+  window.deleteBaixaInsumo = async function(id) {
+    if (confirm("Cancelar esta baixa de insumo? O saldo do insumo será restaurado.")) {
+      insumosBaixas = insumosBaixas.filter(b => b.id !== id);
+      localStorage.setItem('forja_insumos_baixas', JSON.stringify(insumosBaixas));
+
+      if (db) {
+        try { await deleteDoc(doc(db, "insumos_baixas", id)); } catch (e) {}
+      }
+
+      window.broadcastSync();
+      window.renderInsumosSection();
+    }
+  };
+
+  // OUTROS MODAIS E FUNÇÕES AUXILIARES
   window.viewProductReservations = function(nomeProduto) {
     document.getElementById('details-product-title').textContent = `Histórico: ${nomeProduto}`;
     
@@ -572,7 +1149,6 @@
     return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   }
 
-  // Configuração do Firebase
   window.openConfigModal = function() {
     const modal = document.getElementById('config-modal');
     const customConfig = localStorage.getItem('custom_firebase_config');
@@ -612,7 +1188,6 @@
     initFirebase();
   };
 
-  // Modais de Entrada
   window.openStockModal = function(p = null) {
     document.getElementById('modal-title').textContent = p ? 'Editar Entrada/Preço' : 'Nova Entrada de Estoque';
     document.getElementById('edit-prod-id').value = p?.id || '';
@@ -643,6 +1218,7 @@
     }
 
     localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+    window.broadcastSync();
     window.closeStockModal();
     window.renderStockTable();
   };
@@ -656,6 +1232,7 @@
     if (confirm("Remover este produto do controle de estoque?")) {
       catalogProducts = catalogProducts.filter(p => p.id !== id);
       localStorage.setItem('forja_catalog_products', JSON.stringify(catalogProducts));
+      window.broadcastSync();
       window.renderStockTable();
     }
   };
